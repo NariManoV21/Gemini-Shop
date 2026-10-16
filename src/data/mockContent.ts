@@ -7,10 +7,13 @@ import type { IconName } from '../components/Icon';
 export interface Benefit {
   id: string;
   title: string;
+  shortTitle: string;
+  teaser: string;
   subtitle: string;
   image: string;
   badge: string;
   badgeColor: string;
+  glowColor: string;
   summary: string;
   points: string[];
 }
@@ -66,11 +69,14 @@ export const HERO_COPY = {
 export const BENEFITS: Benefit[] = [
   {
     id: 'gemini-pro',
-    title: 'مدل‌های Gemini 3.8 Flash و Gemini 4 Pro Argon',
+    title: 'مدل‌های Gemini 4 Pro و Gemini 3.8 Flash',
+    shortTitle: 'Gemini 4 Pro & Flash',
+    teaser: 'پیشرفته‌ترین مدل‌های هوش مصنوعی با ۱ میلیون توکن',
     subtitle: 'پیشرفته‌ترین نسل هوش مصنوعی گوگل با کانتکست ۱ میلیون توکن',
-    image: '/assets/features/gemini-pro.jpg',
+    image: './assets/features/gemini-pro.jpg',
     badge: 'نسل جدید ۲۰۲۶',
     badgeColor: 'linear-gradient(135deg, #2563eb, #60a5fa)',
+    glowColor: 'rgba(37, 99, 235, 0.35)',
     summary: 'دسترسی همزمان به سریع‌ترین و قوی‌ترین مدل‌های هوش مصنوعی جهان با معماری پیشرفته Argon برای استدلال عمیق و کدنویسی',
     points: [
       'دسترسی همزمان به مدل فوق‌سریع Gemini 3.8 Flash و پرچمدار Gemini 4 Pro Argon',
@@ -82,10 +88,13 @@ export const BENEFITS: Benefit[] = [
   {
     id: 'google-drive',
     title: 'فضای ابری ۵ ترابایت Google One',
+    shortTitle: 'فضای ۵ ترابایت ابری',
+    teaser: '۵۰۰۰ گیگابایت فضای ابری ذخیره‌سازی نامحدود Drive و Photos',
     subtitle: 'ذخیره‌سازی فوق‌سریع و ایمن در Google Drive و Google Photos',
-    image: '/assets/features/google-drive.jpg',
+    image: './assets/features/google-drive.jpg',
     badge: '۵۰۰۰ گیگابایت حافظه',
     badgeColor: 'linear-gradient(135deg, #10b981, #34d399)',
+    glowColor: 'rgba(16, 185, 129, 0.35)',
     summary: 'پایان همیشگی دغدغه پر شدن حافظه جیمیل و موبایل با ۵ ترابایت فضای ابری با کیفیت اصلی و بدون کاهش حجم',
     points: [
       '۵ ترابایت (معادل ۵۰۰۰ گیگابایت) فضای ابری اختصاصی روی حساب شخصی جیمیل',
@@ -97,10 +106,13 @@ export const BENEFITS: Benefit[] = [
   {
     id: 'workspace-ai',
     title: 'دستیار و عامل هوشمند Antigravity',
+    shortTitle: 'هوش مصنوعی Antigravity',
+    teaser: 'پلتفرم ایجنتیک خودکار گوگل برای برنامه‌نویسی و اتوماسیون',
     subtitle: 'پلتفرم ایجنتیک پیشرفته گوگل برای برنامه‌نویسی و اتوماسیون هوشمند',
-    image: '/assets/features/workspace-ai.jpg',
+    image: './assets/features/workspace-ai.jpg',
     badge: 'هوش مصنوعی Antigravity',
     badgeColor: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+    glowColor: 'rgba(124, 58, 237, 0.35)',
     summary: 'دسترسی کامل به عامل هوشمند Antigravity برای کدنویسی عمیق، مدیریت خودکار تسک‌ها، خطایابی و اتوماسیون پروژه‌ها',
     points: [
       'توسعه اشتراکی با عامل‌های خودمختار (Agentic AI) برای تحلیل و اجرای گام‌به‌گام پروژه‌ها',
@@ -112,10 +124,13 @@ export const BENEFITS: Benefit[] = [
   {
     id: 'google-suite',
     title: 'استودیوی ویدیوساز Veo 3.1 و تصویرساز Imagen 3',
+    shortTitle: 'استودیو Veo & Imagen',
+    teaser: 'تولید ویدیوهای 1080p و تصاویر خارق‌العاده واقع‌گرایانه با یک خط متن',
     subtitle: 'خلق شاهکارهای بصری و پژوهش با سقف ۵ برابری NotebookLM',
-    image: '/assets/features/google-suite.jpg',
+    image: './assets/features/google-suite.jpg',
     badge: 'استودیو خلاقیت',
     badgeColor: 'linear-gradient(135deg, #f59e0b, #f43f5e)',
+    glowColor: 'rgba(245, 158, 11, 0.35)',
     summary: 'تولید ویدیوهای سینمایی خیره‌کننده و تصاویر بدون واترمارک تنها با توصیف متنی ایده در کسری از ثانیه',
     points: [
       'تولید ویدیوهای سینمایی با وضوح 1080p از روی متن با هوش مصنوعی انقلابی Veo 3.1',

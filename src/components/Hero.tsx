@@ -57,20 +57,20 @@ export function Hero({ product, onBuy }: Props) {
             <div className="luxury-card__header">
               <div className="luxury-card__brand-col">
                 <div className="luxury-card__brand-title">
-                  <GeminiStar size={32} />
                   <span className="luxury-card__brand-name en">
                     Gemini <b>Pro</b>
                   </span>
+                  <GeminiStar size={30} />
                 </div>
                 <div className="luxury-card__period-pill">
-                  <span>اشتراک ۱۸ ماهه</span>
                   <Icon name="calendar" size={14} />
+                  <span>اشتراک ۱۸ ماهه</span>
                 </div>
               </div>
 
               <div className="luxury-card__smart-pill">
-                <span>انتخابی هوشمندانه</span>
                 <Icon name="sparkle" size={14} />
+                <span>انتخابی هوشمندانه</span>
               </div>
             </div>
 
@@ -82,7 +82,7 @@ export function Hero({ product, onBuy }: Props) {
                   <span className="luxury-card__check">
                     <Icon name="check" size={13} />
                   </span>
-                  <span>دسترسی به Gemini 3.8 Flash و Gemini 4 Pro Argon</span>
+                  <span>دسترسی به Gemini 4 Pro و Gemini 3.8 Flash و Gemini 4 Pro Argo</span>
                 </li>
                 <li>
                   <span className="luxury-card__check">
@@ -94,7 +94,7 @@ export function Hero({ product, onBuy }: Props) {
                   <span className="luxury-card__check">
                     <Icon name="check" size={13} />
                   </span>
-                  <span>اشتراک ۱۸ ماهه با ۱ ماه رایگان</span>
+                  <span>اشتراک ۱۸ ماهه با ۶ ماهه رایگان</span>
                 </li>
                 <li>
                   <span className="luxury-card__check">
@@ -121,8 +121,8 @@ export function Hero({ product, onBuy }: Props) {
                 </div>
 
                 <div className="luxury-card__onetime-pill">
-                  <span>پرداخت یکباره، بدون هزینه تمدید</span>
                   <Icon name="shield" size={14} />
+                  <span>پرداخت یکباره، بدون هزینه تمدید</span>
                 </div>
 
                 <button
@@ -132,7 +132,7 @@ export function Hero({ product, onBuy }: Props) {
                 >
                   <Icon name="arrow" size={16} />
                   <span>{product.available ? 'خرید و فعال‌سازی روی ایمیل' : 'فعلاً ناموجود'}</span>
-                  <Icon name="bag" size={18} />
+                  <Icon name="mail" size={18} />
                 </button>
               </div>
             </div>

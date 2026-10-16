@@ -139,24 +139,24 @@
 /* بدنه کارت: ستون ویژگی‌ها و ستون اقدام */
 .luxury-card__body {
   display: grid;
-  grid-template-columns: 1.36fr 1fr;
-  gap: 20px;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 24px;
   align-items: center;
 }
 
 .luxury-card__features {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 15px;
 }
 
 .luxury-card__features li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12.5px;
-  color: #1e293b;
-  line-height: 1.4;
+  gap: 12px;
+  font-size: 13.5px;
+  color: #1e1b4b;
+  line-height: 1.5;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -164,11 +164,11 @@
 .luxury-card__check {
   display: grid;
   place-items: center;
-  width: 23px;
-  height: 23px;
-  min-width: 23px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
   border-radius: 50%;
-  background: #ede9fe;
+  background: #f1edff;
   color: #6366f1;
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
@@ -179,18 +179,18 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 14px;
+  gap: 15px;
 }
 
 .luxury-card__price-box {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
 }
 
 .luxury-card__price-label {
-  font-size: 12.5px;
+  font-size: 13px;
   color: #94a3b8;
   font-weight: 600;
 }
@@ -203,15 +203,15 @@
 }
 
 .luxury-card__number {
-  font-size: 40px;
+  font-size: 42px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1;
-  letter-spacing: -1.2px;
+  letter-spacing: -1px;
 }
 
 .luxury-card__currency {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
   color: #0f172a;
   margin-inline-end: 2px;
@@ -223,7 +223,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 14px 22px;
+  padding: 15px 22px;
   border-radius: 9999px;
   font-size: 14.5px;
   font-weight: 800;

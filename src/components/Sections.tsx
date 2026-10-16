@@ -18,21 +18,32 @@ import './Sections.css';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ---------- ۴ رکن اصلی اشتراک (کارت‌های استگر با نمادهای شیشه‌ای) ---------- */
+/* ---------- ۴ رکن اصلی اشتراک (کارت‌های تعاملی تک‌ردیفه با انیمیشن بازشونده) ---------- */
 export function Benefits() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  // حل مشکل مسیر تصاویر در گیت‌هاب پیجز و سایر محیط‌ها
+  const resolveAsset = (path: string) => {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const clean = path.replace(/^\.?\//, '');
+    const base = import.meta.env.BASE_URL || './';
+    const sep = base.endsWith('/') ? '' : '/';
+    return `${base}${sep}${clean}`;
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      // انیمیشن استگر ورود کارت‌ها
+      // انیمیشن استگر ورود ۴ کارت در ردیف
       gsap.fromTo(
-        '.feature-card',
-        { opacity: 0, y: 35 },
+        '.showcase-card',
+        { opacity: 0, y: 35, scale: 0.96 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.65,
-          stagger: 0.14,
+          scale: 1,
+          duration: 0.75,
+          stagger: 0.12,
           ease: 'power3.out',
           scrollTrigger: {
             trigger: containerRef.current,
@@ -62,43 +73,81 @@ export function Benefits() {
           </p>
         </div>
 
-        {/* شبکه ۴ کارت مدرن با استگر */}
-        <div className="features-grid">
-          {BENEFITS.map((item) => (
-            <article key={item.id} className="feature-card glass">
-              <div className="feature-card__top">
-                <div className="feature-card__logo-wrap">
-                  <div className="feature-card__logo-glow" />
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="feature-card__logo"
-                    loading="lazy"
-                  />
-                </div>
-                <div className="feature-card__badge" style={{ background: item.badgeColor }}>
-                  {item.badge}
-                </div>
-              </div>
+        {/* ۴ کارت در یک ردیف در کنار هم با انیمیشن روان و بازشونده */}
+        <div className="showcase-strip" onMouseLeave={() => setHoveredId(null)}>
+          {BENEFITS.map((item) => {
+            const isExpanded = hoveredId === item.id;
+            return (
+              <article
+                key={item.id}
+                className={`showcase-card glass ${isExpanded ? 'is-expanded' : ''}`}
+                onMouseEnter={() => setHoveredId(item.id)}
+                onClick={() => setHoveredId(isExpanded ? null : item.id)}
+                style={{
+                  '--accent-glow': item.glowColor,
+                } as React.CSSProperties}
+              >
+                {/* سربرگ فشرده: لوگوی ۳ بعدی درخشان + برچسب + عنوان کوتاه */}
+                <div className="showcase-card__header">
+                  <div className="showcase-card__logo-wrap">
+                    <div className="showcase-card__glow" style={{ background: item.badgeColor }} />
+                    <img
+                      src={resolveAsset(item.image)}
+                      alt={item.title}
+                      className="showcase-card__logo"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.dataset.tried) {
+                          target.dataset.tried = 'true';
+                          target.src = `./assets/features/${item.id}.jpg`;
+                        }
+                      }}
+                    />
+                  </div>
 
-              <div className="feature-card__body">
-                <h3 className="feature-card__title">{item.title}</h3>
-                <h4 className="feature-card__subtitle">{item.subtitle}</h4>
-                <p className="feature-card__desc">{item.summary}</p>
+                  <div className="showcase-card__badge" style={{ background: item.badgeColor }}>
+                    {item.badge}
+                  </div>
 
-                <ul className="feature-card__points">
-                  {item.points.map((p, idx) => (
-                    <li key={idx}>
-                      <span className="feature-card__check">
-                        <Icon name="check" size={14} />
-                      </span>
-                      <span>{p}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </article>
-          ))}
+                  <h3 className="showcase-card__short-title">{item.shortTitle}</h3>
+                  <p className="showcase-card__teaser">{item.teaser}</p>
+                </div>
+
+                {/* نشانگر دعوت به هوور / تاچ */}
+                <div className="showcase-card__hint">
+                  <span className="showcase-card__hint-text">
+                    {isExpanded ? 'بستن توضیحات' : 'مشاهده توضیحات و امکانات'}
+                  </span>
+                  <span className="showcase-card__hint-icon">
+                    <Icon name={isExpanded ? 'chevron' : 'sparkle'} size={14} />
+                  </span>
+                </div>
+
+                {/* محتوای بازشونده با انیمیشن روان و دقیق */}
+                <div className="showcase-card__drawer">
+                  <div className="showcase-card__drawer-inner">
+                    <h4 className="showcase-card__full-title">{item.title}</h4>
+                    <span className="showcase-card__subtitle">{item.subtitle}</span>
+                    <p className="showcase-card__summary">{item.summary}</p>
+
+                    <div className="showcase-card__divider" />
+
+                    <ul className="showcase-card__points">
+                      {item.points.map((p, pIdx) => (
+                        <li key={pIdx}>
+                          <span className="showcase-card__check">
+                            <Icon name="check" size={13} />
+                          </span>
+                          <span>{p}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>
