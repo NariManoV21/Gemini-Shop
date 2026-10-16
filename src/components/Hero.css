@@ -1,0 +1,304 @@
+.hero { position: relative; min-height: calc(100svh - 96px); padding-top: calc(var(--header-h) + 36px); padding-bottom: 28px; isolation: isolate; }
+.hero__bg {
+  position: absolute; inset: 0 0 -120px; z-index: -1;
+  background:
+    radial-gradient(48% 42% at 6% 2%, rgba(255, 244, 244, .98) 0%, rgba(255, 244, 244, 0) 72%),
+    linear-gradient(116deg, rgba(255,255,255,0) 6%, rgba(255,255,255,.62) 17%, rgba(255,255,255,0) 33%),
+    radial-gradient(36% 52% at 70% 44%, rgba(150, 138, 240, .36), rgba(150,138,240,0) 72%),
+    radial-gradient(60% 30% at 40% 78%, rgba(255, 236, 244, .85), rgba(255,236,244,0) 70%),
+    linear-gradient(180deg, #c9c9ee 0%, #d4d3f1 34%, #e4e2f6 58%, #efedf9 76%, var(--pearl) 100%);
+}
+.hero__bg::after { /* خط نرم کف استودیو */
+  content: ''; position: absolute; inset-inline: 0; top: 60%; height: 150px;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.5) 45%, rgba(255,255,255,0));
+  filter: blur(6px);
+}
+
+.hero__grid { display: grid; grid-template-columns: 1fr 1.3fr; align-items: center; gap: 24px; min-height: 640px; }
+
+/* ستاره (سمت راست در RTL) */
+.hero__stage { position: relative; display: grid; place-items: center; }
+.hero__star-slot { width: min(100%, 520px); aspect-ratio: 1; }
+.hero__floor { /* بازتاب رنگین کف زیر ستاره؛ همراه اسکرول محو می‌شه */
+  position: absolute; inset-inline: 4%; bottom: 6%; height: 20%; pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 40% at 55% 45%, rgba(56, 189, 248, 0.6) 0%, rgba(129, 140, 248, 0.42) 35%, rgba(232, 121, 249, 0.22) 65%, transparent 80%),
+    radial-gradient(ellipse 22% 16% at 48% 50%, rgba(30, 41, 59, 0.18) 0%, transparent 70%);
+  filter: blur(22px); transform: skewX(-24deg); border-radius: 50%;
+}
+
+/* متن (سمت چپ در RTL) */
+.hero__copy { display: flex; flex-direction: column; align-items: flex-end; width: 100%; max-width: 640px; justify-self: end; animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+.hero-badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 16px; border-radius: 999px; margin-bottom: 26px; font-weight: 600; font-size: 14px; color: var(--ink); }
+.hero-badge__text { font-family: var(--font-en), var(--font-fa); }
+
+.hero__title { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.hero__line--ink { font-size: clamp(26px, 3.9vw, 54px); font-weight: 800; color: var(--ink); }
+.hero__line--accent { font-size: clamp(26px, 3.9vw, 54px); font-weight: 800; background-image: linear-gradient(90deg, #2f7bff, #5b4ef0); }
+.hero__line--en { font-size: clamp(48px, 6.3vw, 92px); font-weight: 700; letter-spacing: -2px; line-height: 1.1; margin-top: 4px; }
+.hero__desc { margin-top: 22px; max-width: 540px; align-self: flex-end; font-size: clamp(15px, 1.25vw, 18px); color: var(--muted); }
+
+/* کارت ورودی هیرو ریدیزاین‌شده بر اساس رفرنس ارسالی */
+.price-card.luxury-card {
+  width: 100%;
+  max-width: 635px;
+  margin-top: 28px;
+  padding: 30px 32px 22px 32px;
+  border-radius: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  background: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 28px 60px -15px rgba(99, 102, 241, 0.16),
+    0 12px 28px -6px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.95) inset;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.price-card.luxury-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 34px 68px -16px rgba(99, 102, 241, 0.22),
+    0 14px 30px -6px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(255, 255, 255, 0.95) inset;
+}
+
+/* نوار بالای کارت: عنوان Gemini Pro + نشان‌ها */
+.luxury-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 2px;
+}
+
+.luxury-card__brand-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.luxury-card__brand-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.luxury-card__brand-title svg {
+  filter: drop-shadow(0 3px 8px rgba(79, 70, 229, 0.28));
+}
+
+.luxury-card__brand-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e1b4b;
+  letter-spacing: -0.6px;
+  line-height: 1.1;
+}
+
+.luxury-card__brand-name b {
+  color: #4f46e5;
+  font-weight: 800;
+  margin-inline-start: 4px;
+}
+
+.luxury-card__period-pill,
+.luxury-card__smart-pill,
+.luxury-card__onetime-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 9999px;
+  background: #f1edff;
+  color: #6366f1;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.07);
+}
+
+.luxury-card__period-pill {
+  padding: 5px 13px;
+  font-size: 12.5px;
+}
+
+.luxury-card__smart-pill {
+  padding: 7px 16px;
+  font-size: 13.5px;
+}
+
+.luxury-card__onetime-pill {
+  padding: 6px 14px;
+  font-size: 12px;
+  align-self: flex-end;
+}
+
+/* بدنه کارت: ستون ویژگی‌ها و ستون اقدام */
+.luxury-card__body {
+  display: grid;
+  grid-template-columns: 1.36fr 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.luxury-card__features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.luxury-card__features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #1e293b;
+  line-height: 1.4;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.luxury-card__check {
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  min-width: 23px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #6366f1;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
+}
+
+/* ستون اقدام و قیمت */
+.luxury-card__action-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+.luxury-card__price-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.luxury-card__price-label {
+  font-size: 12.5px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.luxury-card__amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-direction: row-reverse;
+}
+
+.luxury-card__number {
+  font-size: 40px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  letter-spacing: -1.2px;
+}
+
+.luxury-card__currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-inline-end: 2px;
+}
+
+.luxury-card__cta {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 22px;
+  border-radius: 9999px;
+  font-size: 14.5px;
+  font-weight: 800;
+  white-space: nowrap !important;
+  word-break: keep-all;
+  color: #ffffff;
+  background: linear-gradient(90deg, #1d68ff 0%, #3b82f6 40%, #7c3aed 100%);
+  box-shadow: 0 10px 24px -4px rgba(59, 130, 246, 0.45), 0 4px 12px rgba(124, 58, 237, 0.25);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.luxury-card__cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -4px rgba(59, 130, 246, 0.55), 0 6px 16px rgba(124, 58, 237, 0.35);
+}
+
+/* فوتر درون کارت: ۳ اعتمادسازی با خطوط جداکننده عمودی */
+.luxury-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 18px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  margin-top: 6px;
+}
+
+.luxury-card__trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.luxury-card__trust-item svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.luxury-card__divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(203, 213, 225, 0.8);
+  flex-shrink: 0;
+}
+
+/* نشانگر اسکرول */
+.scroll-hint { position: absolute; inset-inline-start: 30px; inset-block-start: 38%; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.scroll-hint__line { width: 1px; height: 34px; background: linear-gradient(var(--ink), transparent); }
+.scroll-hint__mouse { width: 20px; height: 32px; border-radius: 12px; border: 1.5px solid var(--ink); display: grid; place-items: start center; padding-top: 6px; }
+.scroll-hint__mouse i { width: 2px; height: 7px; border-radius: 2px; background: var(--ink); animation: wheel 1.8s ease-in-out infinite; }
+@keyframes wheel { 0%,100% { transform: translateY(0); opacity: 1; } 60% { transform: translateY(6px); opacity: .2; } }
+
+@media (max-width: 1100px) {
+  .scroll-hint { display: none; }
+  .luxury-card__body { grid-template-columns: 1fr; gap: 18px; }
+  .luxury-card__action-block { align-items: stretch; }
+  .luxury-card__price-box { align-items: center; }
+  .luxury-card__onetime-pill { align-self: center; }
+}
+
+@media (max-width: 860px) {
+  .hero { padding-top: calc(var(--header-h) + 12px); }
+  .hero__grid { grid-template-columns: 1fr; min-height: 0; gap: 0; }
+  .hero__star-slot { width: min(62vw, 300px); }
+  .hero__stage { margin-bottom: 18px; }
+  .hero__copy { align-items: center; text-align: center; max-width: none; }
+  .hero__title { align-items: center; }
+  .price-card.luxury-card { padding: 20px 18px 16px 18px; border-radius: 28px; }
+  .luxury-card__header { flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+  .luxury-card__footer { flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .luxury-card__divider { display: none; }
+  .hero__trust { justify-content: center; }
+}
+

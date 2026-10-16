@@ -1,0 +1,84 @@
+/* استایل‌های کامپوننت جداکننده موج سینوسی بلند و چندلایه */
+
+.wave-divider {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  pointer-events: none;
+  z-index: 2;
+  margin-block: 24px 12px;
+}
+
+.wave-divider--flip {
+  transform: rotate(180deg);
+  margin-block: 12px 24px;
+}
+
+.wave-svg {
+  position: relative;
+  display: block;
+  width: calc(100% + 1.5px);
+  height: clamp(85px, 10vw, 150px);
+  filter: drop-shadow(0 6px 20px rgba(79, 70, 229, 0.15));
+}
+
+/* انیمیشن شناور موجی سینوسی نرم و زنده */
+.wave-path {
+  transform-origin: center;
+  will-change: transform;
+}
+
+.wave-path--back {
+  animation: wave-sway-back 14s ease-in-out infinite alternate;
+}
+
+.wave-path--mid {
+  animation: wave-sway-mid 10s ease-in-out infinite alternate;
+}
+
+.wave-path--front {
+  animation: wave-sway-front 7.5s ease-in-out infinite alternate;
+}
+
+@keyframes wave-sway-back {
+  0% {
+    transform: translateX(0) scaleY(1);
+  }
+  50% {
+    transform: translateX(-32px) scaleY(1.06);
+  }
+  100% {
+    transform: translateX(28px) scaleY(0.96);
+  }
+}
+
+@keyframes wave-sway-mid {
+  0% {
+    transform: translateX(0) scaleY(0.96);
+  }
+  50% {
+    transform: translateX(36px) scaleY(1.07);
+  }
+  100% {
+    transform: translateX(-28px) scaleY(1);
+  }
+}
+
+@keyframes wave-sway-front {
+  0% {
+    transform: translateX(0) scaleY(1);
+  }
+  50% {
+    transform: translateX(-24px) scaleY(0.95);
+  }
+  100% {
+    transform: translateX(32px) scaleY(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-path {
+    animation: none !important;
+  }
+}

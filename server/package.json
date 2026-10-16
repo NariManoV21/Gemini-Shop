@@ -1,0 +1,10 @@
+{
+  "name": "gemini-pro-store-backend",
+  "version": "1.0.0",
+  "description": "Lightweight, zero-dependency production backend for Gemini Pro Store",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  }
+}

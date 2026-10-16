@@ -1,0 +1,36 @@
+:root {
+  /* رنگ‌ها: نمونه‌برداری‌شده از ماکاپ */
+  --pearl: #f6f5fc;
+  --mist: #e9e8fa;
+  --lilac: #d0cfeb;
+  --periwinkle: #a7abda;
+  --ice: #b5c0eb;
+  --ink: #1c2674;          /* تیتر اصلی */
+  --text: #3d4470;
+  --muted: #6c7299;
+  --blue: #2f7bff;
+  --blue-deep: #2563eb;
+  --violet: #8b2fe8;
+  --grad-brand: linear-gradient(90deg, #1a73ff 0%, #6a4df0 55%, #9a2ff0 100%);
+  --grad-btn: linear-gradient(135deg, #4a9bff 0%, #2f6df0 100%);
+  --glass-bg: rgba(255, 255, 255, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --shadow-btn: 0 10px 24px -6px rgba(47, 109, 240, 0.55);
+  --shadow-glass: 0 18px 50px -24px rgba(88, 84, 180, 0.35);
+
+  /* تایپوگرافی */
+  --font-fa: 'Vazirmatn Variable', Tahoma, system-ui, sans-serif;
+  --font-en: 'Outfit Variable', 'Vazirmatn Variable', system-ui, sans-serif;
+
+  /* شعاع و فاصله */
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --gutter: clamp(20px, 9.3vw, 143px);
+  --header-h: 84px;
+
+  /* لایه‌ها */
+  --z-header: 50;
+  --z-star: 60;
+  --z-modal: 80;
+}

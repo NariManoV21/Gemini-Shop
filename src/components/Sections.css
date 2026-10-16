@@ -1,0 +1,1044 @@
+/* ===== بخش‌ها و هدرها ===== */
+.section__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-deep);
+  background: rgba(47, 109, 240, 0.08);
+  border: 1px solid rgba(47, 109, 240, 0.16);
+  margin-bottom: 14px;
+}
+.section__badge svg {
+  color: var(--blue);
+}
+
+.section--benefits {
+  padding-top: 36px;
+  padding-bottom: 50px;
+}
+.section__head--center {
+  margin-inline: auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 680px;
+  margin-bottom: 44px;
+}
+
+/* ===== ۴ کارت اصلی با لوگوموشن سه‌بعدی (Features Grid) ===== */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+}
+
+.feature-card {
+  padding: 30px;
+  border-radius: 28px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 36px -12px rgba(110, 110, 200, 0.12);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(246, 246, 255, 0.75) 100%);
+  backdrop-filter: blur(20px);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.feature-card:hover {
+  border-color: rgba(60, 130, 250, 0.35);
+  box-shadow: 0 20px 42px -12px rgba(47, 109, 240, 0.18);
+  transform: translateY(-2px);
+}
+
+.feature-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.feature-card__logo-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.feature-card__logo-glow {
+  position: absolute;
+  inset: -4px;
+  border-radius: 24px;
+  background: radial-gradient(circle, rgba(90, 150, 255, 0.25) 0%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(10px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.feature-card__logo {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 22px;
+  object-fit: cover;
+  z-index: 1;
+  box-shadow: 0 10px 24px -6px rgba(40, 60, 140, 0.22);
+  display: block;
+}
+
+.feature-card__badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.2px;
+  box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.2);
+}
+
+.feature-card__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-card__title {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.feature-card__subtitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--blue);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.feature-card__desc {
+  font-size: 14.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 18px;
+}
+
+.feature-card__points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(120, 120, 190, 0.15);
+}
+
+.feature-card__points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.feature-card__check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(47, 109, 240, 0.12);
+  color: var(--blue);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ===== کاربردها (Tabs) ===== */
+.uses {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: clamp(28px, 5vw, 72px);
+  align-items: center;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.6);
+  transition: 0.2s ease;
+}
+.tab:hover {
+  background: #fff;
+}
+.tab.is-active {
+  color: #fff;
+  background: var(--grad-btn);
+  box-shadow: var(--shadow-btn);
+}
+.use-panel {
+  margin-top: 26px;
+  animation: swap 0.35s ease both;
+}
+.use-panel h3 {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.use-panel p {
+  margin-top: 8px;
+  color: var(--muted);
+  max-width: 52ch;
+  line-height: 1.6;
+}
+@keyframes swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* ===== چت شبیه‌سازی دستیار Gemini ===== */
+.chat {
+  border-radius: var(--r-xl);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 310px;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 20px 48px -16px rgba(47, 80, 200, 0.15);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.92) 0%, rgba(246, 245, 255, 0.8) 100%);
+}
+
+.chat__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(130, 130, 210, 0.15);
+}
+
+.chat__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.chat__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+.chat__model-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(47, 123, 255, 0.1);
+  color: var(--blue);
+  border: 1px solid rgba(47, 123, 255, 0.2);
+}
+
+.chat__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 245px;
+  min-height: 245px;
+  max-height: 245px;
+  overflow-y: auto;
+  padding-inline-end: 6px;
+  scroll-behavior: smooth;
+}
+
+/* اسکرول بار نرم داخلی چت */
+.chat__messages::-webkit-scrollbar {
+  width: 4px;
+}
+.chat__messages::-webkit-scrollbar-thumb {
+  background: rgba(130, 140, 210, 0.35);
+  border-radius: 4px;
+}
+
+.chat__msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.chat__msg--user {
+  justify-content: flex-start;
+}
+
+.chat__bubble--user {
+  max-width: 90%;
+  padding: 13px 20px;
+  border-radius: 20px 20px 20px 4px;
+  background: var(--grad-btn);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: -0.15px;
+  box-shadow: 0 8px 22px -6px rgba(47, 109, 240, 0.35);
+  animation: swap 0.35s ease both;
+}
+
+.chat__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 3px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+.chat__thinking-bubble {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 18px;
+  border-radius: 18px 18px 4px 18px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(130, 140, 220, 0.25);
+  font-size: 12.5px;
+  color: var(--muted);
+  box-shadow: 0 6px 16px -4px rgba(47, 80, 200, 0.08);
+  animation: fadeIn 0.3s ease both;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  animation: dot-jump 1.2s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-jump {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* انیمیشن ورود فوق‌العاده نرم و اسلاید پاسخ هوش مصنوعی */
+.chat__msg--ai-revealed {
+  animation: aiSlideReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes aiSlideReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+    filter: blur(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.chat__bubble--ai {
+  padding: 16px 20px;
+  border-radius: 20px 20px 4px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(160, 175, 235, 0.45);
+  box-shadow: 0 10px 28px -8px rgba(47, 80, 200, 0.14);
+  max-width: 92%;
+}
+
+.chat__ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(140, 150, 220, 0.15);
+}
+
+.chat__ai-head strong {
+  font-size: 13px;
+  color: var(--blue-deep);
+  font-weight: 800;
+}
+
+.chat__tag-argon {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.chat__response-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.chat__response-line {
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.75;
+  font-weight: 500;
+}
+
+.chat__response-bullet {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.7;
+}
+
+.chat__bullet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  flex-shrink: 0;
+  transform: translateY(-2px);
+}
+
+.chat__input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(130, 140, 220, 0.25);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.chat__input:hover {
+  background: #fff;
+  border-color: var(--blue);
+  box-shadow: 0 4px 14px rgba(47, 123, 255, 0.12);
+}
+
+.chat__send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+  transition: transform 0.2s;
+}
+
+.chat__input:hover .chat__send-btn {
+  transform: scale(1.05);
+}
+
+/* ===== قیمت و مقایسه ===== */
+.section--tint {
+  background: linear-gradient(180deg, rgba(233, 232, 250, 0), rgba(233, 232, 250, 0.85) 14%, rgba(233, 232, 250, 0.85) 86%, rgba(233, 232, 250, 0));
+}
+.pricing {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+}
+.compare {
+  border-radius: var(--r-lg);
+  padding: 14px 26px;
+  align-self: start;
+}
+.compare__row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1.3fr;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(110, 110, 190, 0.16);
+  font-size: 14.5px;
+  align-items: center;
+}
+.compare__row:last-child {
+  border-bottom: 0;
+}
+.compare__row--head {
+  font-weight: 800;
+  color: var(--ink);
+  font-size: 15.5px;
+  padding-bottom: 18px;
+}
+.compare__row .muted {
+  color: var(--muted);
+}
+.compare__row b {
+  color: var(--blue-deep);
+  font-weight: 700;
+}
+
+/* کارت لوکس اشتراک ۱۸ ماهه */
+.plan {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 32px 30px;
+  border-radius: 30px;
+  color: #fff;
+  background: linear-gradient(145deg, #1e40af 0%, #2563eb 42%, #4f46e5 78%, #7c3aed 100%);
+  background-size: 200% 200%;
+  animation: plan-aurora 10s ease infinite alternate;
+  box-shadow: 0 30px 65px -24px rgba(37, 99, 235, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.28) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@keyframes plan-aurora {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+.plan__aura {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at 75% 20%, rgba(129, 140, 248, 0.4) 0%, rgba(59, 130, 246, 0.2) 45%, transparent 70%);
+  animation: aura-shift 12s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes aura-shift {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(25deg) scale(1.15); }
+}
+
+.plan__flare {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.plan > *:not(.plan__aura):not(.plan__flare) {
+  position: relative;
+  z-index: 1;
+}
+
+.plan__top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.plan__guarantee-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.28);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #ecfdf5;
+}
+
+/* هدر معرفی پلن */
+.plan__header {
+  margin-top: 2px;
+}
+
+.plan__title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin-bottom: 3px;
+}
+
+.plan__subtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+/* لیست ویژگی‌ها در بدنه کارت */
+.plan__features-box {
+  margin-block: 8px 12px;
+}
+
+.plan__features-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.plan__features {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  font-size: 13.5px;
+}
+
+.plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.45;
+}
+
+.plan__check-circle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* باکس قیمت‌گذاری در انتهای کارت مستقیماً بالای دکمه */
+.plan__pricing-box {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.plan__global-val {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.plan__global-title {
+  opacity: 0.85;
+}
+
+.plan__global-nums {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan__usd-badge {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.plan__toman-strike {
+  font-size: 12.5px;
+  opacity: 0.75;
+}
+
+.plan__price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan__price-row b {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.plan__price-row small {
+  font-size: 16px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.plan__period-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.plan__payment-note {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.plan__buy-btn {
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+  background: #fff !important;
+  color: #1e3a8a !important;
+  font-weight: 800;
+  box-shadow: 0 12px 28px -10px rgba(10, 10, 80, 0.5);
+  transition: transform 0.25s, box-shadow 0.25s;
+}
+
+.plan__buy-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.plan__buy-btn:hover {
+  background: #f8faff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 16px 34px -8px rgba(10, 10, 80, 0.65);
+}
+
+.plan__buy-btn:hover::after {
+  transform: translateX(100%);
+}
+
+.plan__footnote {
+  font-size: 11.5px;
+  opacity: 0.85;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* کارت تذکر مهم ابزار تغییر IP */
+.ip-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 26px;
+  padding: 18px 22px;
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.65) 0%, rgba(255, 251, 235, 0.85) 100%);
+}
+
+.ip-warning-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.18);
+  color: #d97706;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.ip-warning-card__content strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #92400e;
+  margin-bottom: 4px;
+}
+
+.ip-warning-card__content p {
+  font-size: 13.5px;
+  color: #78350f;
+  line-height: 1.65;
+}
+
+/* ===== مراحل فعال‌سازی ===== */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+.step {
+  padding: 26px 22px;
+  border-radius: var(--r-lg);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.step__n {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  background: var(--grad-btn);
+  box-shadow: var(--shadow-btn);
+  margin-bottom: 14px;
+}
+.step h3 {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+.step p {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.activation-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 30px;
+  padding: 18px 24px;
+  border-radius: 20px;
+  background: rgba(47, 123, 255, 0.08);
+  border: 1px solid rgba(47, 123, 255, 0.2);
+}
+.activation-alert svg {
+  color: var(--blue);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.activation-alert strong {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.activation-alert p {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ===== اعتماد و پشتیبانی ===== */
+.trust {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+.trust__items {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.trust__item {
+  display: flex;
+  gap: 16px;
+}
+.trust__item h3 {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.trust__item p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.contact {
+  padding: 28px;
+  border-radius: var(--r-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.contact h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.contact__desc {
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.contact__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+  color: var(--ink);
+  transition: all 0.2s;
+  border: 1px solid rgba(120, 120, 190, 0.15);
+}
+.contact__row:hover {
+  background: #fff;
+  border-color: var(--blue);
+  transform: translateX(-4px);
+}
+.contact__row svg {
+  color: var(--blue);
+}
+.contact__hours {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* ===== دعوت به خرید ===== */
+.cta-section {
+  padding-block: 40px 90px;
+}
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  padding: clamp(32px, 4.5vw, 56px);
+  border-radius: 36px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.85), rgba(214, 214, 250, 0.75));
+  box-shadow: 0 20px 45px -15px rgba(80, 80, 180, 0.15);
+}
+.cta h2 {
+  font-size: clamp(22px, 2.5vw, 32px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.45;
+  margin-top: 8px;
+}
+.cta p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 16px;
+}
+.btn--lg {
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+@media (max-width: 1050px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  .steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .uses,
+  .pricing,
+  .trust {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .compare {
+    padding: 10px 14px;
+  }
+  .compare__row {
+    grid-template-columns: 1.2fr 0.9fr 1.1fr;
+    font-size: 12.5px;
+    gap: 8px;
+  }
+  .cta {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .plan {
+    padding: 24px;
+  }
+}

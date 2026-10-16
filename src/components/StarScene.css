@@ -1,0 +1,12 @@
+.star-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  pointer-events: none;
+  z-index: var(--z-star);
+}
+
+.star-canvas { transition: opacity .2s ease; }
+.menu-open .star-canvas { opacity: 0; }

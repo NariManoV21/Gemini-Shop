@@ -1,0 +1,12 @@
+.faq { max-width: 880px; }
+.faq__list { display: flex; flex-direction: column; gap: 12px; }
+.faq__item { border-radius: var(--r-md); overflow: hidden; transition: box-shadow .25s ease, background .25s ease; }
+.faq__item.is-open { background: rgba(255,255,255,.78); }
+.faq__item h3 { font-size: 16px; }
+.faq__item button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 24px; text-align: right; font-weight: 700; color: var(--ink); }
+.faq__item button svg { flex: none; color: var(--blue); transition: transform .3s ease; }
+.faq__item.is-open button svg { transform: rotate(180deg); }
+.faq__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .32s ease; }
+.faq__item.is-open .faq__panel { grid-template-rows: 1fr; }
+.faq__panel > div { overflow: hidden; }
+.faq__panel p { padding: 0 24px 22px; color: var(--muted); max-width: 70ch; }
