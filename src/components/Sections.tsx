@@ -134,24 +134,11 @@ export function Benefits() {
                   <p className="showcase-card__teaser">{item.teaser}</p>
                 </div>
 
-                {/* نشانگر دعوت به هوور / تاچ */}
-                <div className="showcase-card__hint">
-                  <span className="showcase-card__hint-text">
-                    {isExpanded ? 'بستن توضیحات' : 'مشاهده توضیحات و امکانات'}
-                  </span>
-                  <span className="showcase-card__hint-icon">
-                    <Icon name={isExpanded ? 'chevron' : 'sparkle'} size={14} />
-                  </span>
-                </div>
-
-                {/* محتوای بازشونده با انیمیشن روان و دقیق */}
+                {/* محتوای بازشونده با چیدمان ثابت و آماده (بدون ریفلو یا لرزش متن) */}
                 <div className="showcase-card__drawer">
                   <div className="showcase-card__drawer-inner">
-                    <h4 className="showcase-card__full-title">{item.title}</h4>
-                    <span className="showcase-card__subtitle">{item.subtitle}</span>
-                    <p className="showcase-card__summary">{item.summary}</p>
-
                     <div className="showcase-card__divider" />
+                    <p className="showcase-card__summary">{item.summary}</p>
 
                     <ul className="showcase-card__points">
                       {item.points.map((p, pIdx) => (
@@ -164,6 +151,16 @@ export function Benefits() {
                       ))}
                     </ul>
                   </div>
+                </div>
+
+                {/* نشانگر دعوت به هوور / تاچ در پایین‌ترین بخش کارت */}
+                <div className="showcase-card__hint">
+                  <span className="showcase-card__hint-text">
+                    {isExpanded ? 'بستن توضیحات' : 'مشاهده توضیحات و امکانات'}
+                  </span>
+                  <span className="showcase-card__hint-icon">
+                    <Icon name={isExpanded ? 'chevron' : 'sparkle'} size={14} />
+                  </span>
                 </div>
               </article>
             );
