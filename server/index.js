@@ -64,6 +64,7 @@ function checkRateLimit(ip, maxRequests = 120, windowMs = 60000) {
 const defaultData = {
   orders: [],
   chatMessages: [],
+  users: [],
   settings: {
     adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
     priceToman: 499000,
@@ -97,6 +98,7 @@ function loadDatabase() {
       ...parsed,
       settings: { ...defaultData.settings, ...(parsed.settings || {}) },
       admins: Array.isArray(parsed.admins) && parsed.admins.length > 0 ? parsed.admins : defaultData.admins,
+      users: Array.isArray(parsed.users) ? parsed.users : [],
     };
     return db;
   } catch (err) {
@@ -535,14 +537,34 @@ const server = http.createServer(async (req, res) => {
       // کد تایید صحیح است -> حذف از حافظه موقت
       activeOtpStore.delete(cleanEmail);
 
-      // ساخت یا به‌روزرسانی پروفایل مشتری
-      const user = {
-        id: `cust_${cleanMobile || Date.now()}`,
-        fullName: cleanFullName || record.fullName || 'کاربر گرامی',
-        mobile: cleanMobile || record.mobile || '',
-        gmail: cleanEmail,
-        createdAt: new Date().toISOString(),
-      };
+      // جلوگیری از ایجاد کاربر تکراری: جستجو در میان مشتریان ثبت شده
+      let existingUser = db.users.find(
+        (u) => normalizeEmail(u.gmail) === cleanEmail || (cleanMobile && normalizeMobile(u.mobile) === cleanMobile)
+      );
+
+      let user;
+      if (existingUser) {
+        if (cleanFullName && cleanFullName !== 'کاربر گرامی') {
+          existingUser.fullName = cleanFullName;
+        }
+        if (cleanMobile && !existingUser.mobile) {
+          existingUser.mobile = cleanMobile;
+        }
+        existingUser.lastLoginAt = new Date().toISOString();
+        user = existingUser;
+      } else {
+        const canonicalId = `cust_${cleanEmail.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+        user = {
+          id: canonicalId,
+          fullName: cleanFullName || record.fullName || 'کاربر گرامی',
+          mobile: cleanMobile || record.mobile || '',
+          gmail: cleanEmail,
+          createdAt: new Date().toISOString(),
+          lastLoginAt: new Date().toISOString(),
+        };
+        db.users.push(user);
+      }
+      saveDatabase(db);
 
       const sessionToken = `usr_${crypto.randomBytes(24).toString('hex')}`;
 
@@ -593,12 +615,35 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'fullName and gmail are required' });
       }
 
+      const cleanOrderEmail = normalizeEmail(body.gmail);
+      const cleanOrderMobile = normalizeMobile(body.mobile || '');
+      const cleanOrderName = sanitizeText(body.fullName, 100);
+
+      // همگام‌سازی یا ثبت اطلاعات کاربر در db.users جهت حفظ یکپارچگی حساب
+      let customer = db.users.find(
+        (u) => normalizeEmail(u.gmail) === cleanOrderEmail || (cleanOrderMobile && normalizeMobile(u.mobile) === cleanOrderMobile)
+      );
+      if (customer) {
+        if (cleanOrderName && cleanOrderName !== 'کاربر گرامی') customer.fullName = cleanOrderName;
+        if (cleanOrderMobile && !customer.mobile) customer.mobile = cleanOrderMobile;
+      } else {
+        const canonicalId = `cust_${cleanOrderEmail.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+        customer = {
+          id: canonicalId,
+          fullName: cleanOrderName || 'کاربر گرامی',
+          mobile: cleanOrderMobile,
+          gmail: cleanOrderEmail,
+          createdAt: new Date().toISOString(),
+        };
+        db.users.push(customer);
+      }
+
       const newOrder = {
         id: `GP-${Math.floor(100000 + Math.random() * 900000)}`,
         createdAt: new Date().toISOString(),
-        fullName: sanitizeText(body.fullName, 100),
-        mobile: normalizeMobile(body.mobile || ''),
-        gmail: normalizeEmail(body.gmail),
+        fullName: cleanOrderName,
+        mobile: cleanOrderMobile,
+        gmail: cleanOrderEmail,
         productName: sanitizeText(body.productName || 'اشتراک ۱۸ ماهه Google AI Pro', 100),
         amountToman: Number(body.amountToman) || db.settings.priceToman || 499000,
         paymentMethod: body.paymentMethod === 'card_to_card' ? 'card_to_card' : 'bezanbekart',

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Icon } from './Icon';
 import { sanitizeEmail, sanitizeMobile, isValidIranianMobile } from '../lib/sanitize';
 import { requestEmailOtp, verifyEmailOtp, type UserProfile } from '../services/authService';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import './AuthModal.css';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function AuthModal({ open, onClose, onSuccess }: Props) {
+  useBodyScrollLock(open);
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState('');
   const [gmail, setGmail] = useState('');
@@ -35,9 +37,7 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
       setStep(1);
       setOtpCode('');
       setTimeout(() => inputRef.current?.focus(), 100);
-      document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = '';
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }, [open]);

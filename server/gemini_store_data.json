@@ -1,6 +1,7 @@
 {
   "orders": [],
   "chatMessages": [],
+  "users": [],
   "settings": {
     "adminPassword": "admin123",
     "priceToman": 499000,
@@ -17,14 +18,6 @@
       "fullName": "نریمان موذنی (مدیر ارشد)",
       "role": "head_admin",
       "createdAt": "2026-10-16T10:00:00.000Z"
-    },
-    {
-      "id": "adm_1792158141061_5dce8f",
-      "username": "sales_ali",
-      "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
-      "fullName": "علی رضایی (ادمین فروش)",
-      "role": "regular_admin",
-      "createdAt": "2026-10-16T13:42:21.061Z"
     }
   ]
 }

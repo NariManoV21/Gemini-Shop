@@ -15,6 +15,7 @@ import {
   type StoreOrder,
 } from '../services/orderStorage';
 import { Icon } from './Icon';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import './AdminPanel.css';
 
 interface Props {
@@ -33,6 +34,7 @@ export interface AdminUser {
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
 
 export function AdminPanel({ open, onClose }: Props) {
+  useBodyScrollLock(open);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [adminToken, setAdminToken] = useState<string>('gemini_admin_session_token');

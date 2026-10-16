@@ -143,13 +143,24 @@ export async function verifyEmailOtp(
     const saved = sessionStorage.getItem(`offline_otp_${cleanEmail}`);
     if (cleanCode === '12345' || (saved && saved === cleanCode)) {
       sessionStorage.removeItem(`offline_otp_${cleanEmail}`);
-      const user: UserProfile = {
-        id: `cust_${sanitizeMobile(mobile || '') || Date.now()}`,
-        fullName: sanitizeInput(fullName || 'کاربر گرامی'),
-        mobile: sanitizeMobile(mobile || ''),
-        gmail: cleanEmail,
-        createdAt: new Date().toISOString(),
-      };
+      const cleanMob = sanitizeMobile(mobile || '');
+      const existing = getCurrentUser();
+      const isSameUser = existing && (existing.gmail === cleanEmail || (cleanMob && existing.mobile === cleanMob));
+      
+      const user: UserProfile = isSameUser
+        ? {
+            ...existing,
+            fullName: sanitizeInput(fullName || existing.fullName || 'کاربر گرامی'),
+            mobile: cleanMob || existing.mobile || '',
+            gmail: cleanEmail,
+          }
+        : {
+            id: `cust_${cleanEmail.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`,
+            fullName: sanitizeInput(fullName || 'کاربر گرامی'),
+            mobile: cleanMob,
+            gmail: cleanEmail,
+            createdAt: new Date().toISOString(),
+          };
       saveCurrentUser(user);
       return { success: true, user, message: 'ورود با موفقیت انجام شد.' };
     }
@@ -159,6 +170,7 @@ export async function verifyEmailOtp(
 
 /**
  * ورود یا ایجاد مستقیم پروفایل کاربری با نام، ایمیل و شماره موبایل
+ * تضمین عدم ایجاد حساب تکراری برای یک خریدار
  */
 export function loginOrRegisterCustomer(data: {
   fullName: string;
@@ -169,9 +181,24 @@ export function loginOrRegisterCustomer(data: {
   const cleanGmail = sanitizeEmail(data.gmail);
   const cleanMobile = sanitizeMobile(data.mobile || '');
 
+  // بررسی اکانت موجود برای جلوگیری از ایجاد اکانت تکراری
+  const existing = getCurrentUser();
+  if (existing && (existing.gmail === cleanGmail || (cleanMobile && existing.mobile === cleanMobile))) {
+    const updated: UserProfile = {
+      ...existing,
+      fullName: cleanName || existing.fullName,
+      mobile: cleanMobile || existing.mobile,
+      gmail: cleanGmail || existing.gmail,
+    };
+    saveCurrentUser(updated);
+    return updated;
+  }
+
+  // شناسه یکتا و پایدار بر پایه ایمیل یا موبایل
+  const canonicalId = `cust_${(cleanGmail || cleanMobile).replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
   const user: UserProfile = {
-    id: `cust_${cleanMobile || Date.now()}`,
-    fullName: cleanName,
+    id: canonicalId,
+    fullName: cleanName || 'کاربر گرامی',
     mobile: cleanMobile,
     gmail: cleanGmail,
     createdAt: new Date().toISOString(),

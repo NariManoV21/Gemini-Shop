@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { formatToman } from '../lib/format';
 import { getCustomerOrders, logoutCustomer, saveCurrentUser, type UserProfile } from '../services/authService';
 import type { StoreOrder } from '../services/orderStorage';
-import { Icon, GeminiStar } from './Icon';
+import { Icon, GeminiStar, GoogleG } from './Icon';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import './UserProfileModal.css';
 
 interface Props {
@@ -14,9 +15,12 @@ interface Props {
 }
 
 export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Props) {
+  useBodyScrollLock(open);
+
   const [activeTab, setActiveTab] = useState<'orders' | 'profile'>('orders');
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   const [editName, setEditName] = useState(user.fullName);
   const [editGmail, setEditGmail] = useState(user.gmail || '');
@@ -24,309 +28,436 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
 
   useEffect(() => {
     if (!open) return;
+    setEditName(user.fullName);
+    setEditGmail(user.gmail || '');
+
     const fetchOrders = () => {
-      setOrders(getCustomerOrders(user.mobile));
+      setOrders(getCustomerOrders(user.gmail || user.mobile));
     };
     fetchOrders();
 
     const handleUpdate = () => fetchOrders();
     window.addEventListener('gemini_orders_updated', handleUpdate);
     return () => window.removeEventListener('gemini_orders_updated', handleUpdate);
-  }, [open, user.mobile]);
+  }, [open, user.gmail, user.mobile, user.fullName]);
 
   if (!open) return null;
 
-  const handleCopy = (link: string, orderId: string) => {
+  const handleCopyLink = (link: string, id: string) => {
     navigator.clipboard.writeText(link);
-    setCopiedLink(orderId);
-    setTimeout(() => setCopiedLink(null), 2000);
+    setCopiedLink(id);
+    setTimeout(() => setCopiedLink(null), 2200);
+  };
+
+  const handleCopyOrderId = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedOrderId(id);
+    setTimeout(() => setCopiedOrderId(null), 1800);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: UserProfile = {
       ...user,
-      fullName: editName.trim(),
-      gmail: editGmail.trim(),
+      fullName: editName.trim() || user.fullName,
+      gmail: editGmail.trim() || user.gmail,
     };
     saveCurrentUser(updated);
     setSavedNote(true);
-    setTimeout(() => setSavedNote(false), 2000);
+    setTimeout(() => setSavedNote(false), 2500);
   };
 
   const handleLogout = () => {
-    logoutCustomer();
-    onClose();
+    if (confirm('آیا از خروج از حساب کاربری اطمینان دارید؟')) {
+      logoutCustomer();
+      onClose();
+    }
   };
 
   const approvedOrders = orders.filter((o) => o.status === 'approved');
+  const pendingOrders = orders.filter((o) => o.status === 'pending_verification');
+  const latestApprovedOrder = approvedOrders[0];
 
   return (
     <div className="profile-overlay" dir="rtl" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="profile-modal" role="dialog" aria-modal="true">
-        {/* هدر اطلاعات پروفایل کاربر */}
-        <div className="profile-header">
-          <div className="profile-user-info">
-            <div className="profile-avatar">
-              <span>{user.fullName.slice(0, 1)}</span>
+      <div className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+        {/* نوار سربرگ لوکس حساب کاربری */}
+        <header className="profile-header">
+          <div className="profile-user-summary">
+            <div className="profile-avatar-wrap">
+              <span className="profile-avatar-char">{user.fullName ? user.fullName.slice(0, 1) : 'گ'}</span>
+              <span className="profile-avatar-dot" title="حساب فعال" />
             </div>
-            <div className="profile-titles">
-              <div className="profile-name-row">
-                <h3>{user.fullName}</h3>
-                <span className="profile-customer-badge">مشتری Gemini Shop</span>
+
+            <div className="profile-meta">
+              <div className="profile-meta__title-row">
+                <h3 id="profile-title">{user.fullName || 'کاربر گرامی'}</h3>
+                <span className="profile-badge-tier">
+                  <Icon name="shield" size={13} />
+                  <span>مشتری تأییدشده</span>
+                </span>
                 {approvedOrders.length > 0 && (
-                  <span
-                    className="profile-customer-badge"
-                    style={{
-                      background: 'rgba(16, 185, 129, 0.18)',
-                      color: '#10b981',
-                      borderColor: 'rgba(16, 185, 129, 0.35)',
-                    }}
-                  >
-                    {approvedOrders.length} لایسنس فعال
+                  <span className="profile-badge-active">
+                    <Icon name="sparkle" size={12} />
+                    <span>اشتراک فعال</span>
                   </span>
                 )}
               </div>
-              <div className="profile-sub-info">
-                <span className="en">{user.mobile}</span>
+
+              <div className="profile-meta__contact-chips">
                 {user.gmail && (
-                  <>
-                    <span className="profile-sub-dot">•</span>
+                  <span className="contact-chip contact-chip--gmail">
+                    <GoogleG size={13} />
                     <span className="en">{user.gmail}</span>
-                  </>
+                  </span>
+                )}
+                {user.mobile && (
+                  <span className="contact-chip contact-chip--phone">
+                    <span className="en">{user.mobile}</span>
+                  </span>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="profile-header-actions">
-            <button className="btn btn--sm btn--ghost" onClick={handleLogout} title="خروج از حساب">
-              <Icon name="close" size={14} />
-              <span>خروج</span>
-            </button>
-            <button className="profile-close-btn" onClick={onClose} aria-label="بستن">
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* نوار تب‌ها */}
-        <div className="profile-nav-tabs">
+          {/* تنها یک دکمه بستن شفاف در گوشه کادر، بدون هیچ دکمه خروج مزاحم */}
           <button
-            className={`profile-tab ${activeTab === 'orders' ? 'is-active' : ''}`}
+            type="button"
+            className="profile-modal__close-btn"
+            onClick={onClose}
+            aria-label="بستن پنجره حساب کاربری"
+            title="بستن پنجره (Esc)"
+          >
+            <Icon name="close" size={18} />
+          </button>
+        </header>
+
+        {/* نوار جابجایی تب‌ها */}
+        <nav className="profile-tabs-nav" aria-label="بخش‌های پروفایل">
+          <button
+            type="button"
+            className={`profile-tab-btn ${activeTab === 'orders' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('orders')}
           >
-            <Icon name="bag" size={15} />
-            <span>سفارش‌ها و لایسنس‌های من</span>
-            <span className="profile-badge-count">{orders.length}</span>
+            <Icon name="bag" size={16} />
+            <span>سفارش‌ها و اشتراک‌های من</span>
+            {orders.length > 0 && <span className="profile-tab-count">{orders.length}</span>}
           </button>
+
           <button
-            className={`profile-tab ${activeTab === 'profile' ? 'is-active' : ''}`}
+            type="button"
+            className={`profile-tab-btn ${activeTab === 'profile' ? 'is-active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
-            <Icon name="user" size={15} />
-            <span>مشخصات حساب کاربری</span>
+            <Icon name="user" size={16} />
+            <span>مشخصات و امنیت حساب</span>
           </button>
-        </div>
+        </nav>
 
-        {/* محتوای تب فعال */}
-        <div className="profile-body">
-          {/* تب ۱: سفارشات و لینک‌های فعال‌سازی */}
+        {/* بدنه محتوا */}
+        <div className="profile-body-content">
+          {/* ==================== تب ۱: سفارشات و اشتراک فعال ==================== */}
           {activeTab === 'orders' && (
-            <div className="profile-orders-list">
-              {orders.length === 0 ? (
-                <div className="profile-empty-orders">
-                  <div className="profile-empty-icon">
-                    <Icon name="bag" size={32} />
+            <div className="profile-orders-view">
+              {/* کارت ویژه VIP: لایسنس فعال Google AI Pro (در صورت وجود سفارش تأیید شده) */}
+              {latestApprovedOrder && latestApprovedOrder.activationLink && (
+                <div className="vip-license-card">
+                  <div className="vip-license-card__head">
+                    <div className="vip-gemini-icon">
+                      <GeminiStar size={24} />
+                    </div>
+                    <div>
+                      <div className="vip-tag">
+                        <span>✦ لایسنس رسمی فعال شده</span>
+                      </div>
+                      <h4>{latestApprovedOrder.productName}</h4>
+                      <p>متصل به اکانت شخصی جیمیل: <b className="en">{latestApprovedOrder.gmail}</b></p>
+                    </div>
                   </div>
-                  <h4>هنوز سفارشی برای شما ثبت نشده است</h4>
-                  <p>پس از ثبت سفارش و انتقال کارت به کارت، وضعیت بررسی و لینک فعال‌سازی رسمی شما در این صفحه قرار می‌گیرد.</p>
-                  <button className="btn btn--accent" onClick={() => { onClose(); onBuy(); }}>
-                    <span>ثبت سفارش اشتراک ۱۸ ماهه Google AI Pro</span>
-                    <Icon name="arrow" size={16} />
+
+                  <div className="vip-link-box">
+                    <label>لینک اختصاصی دعوت رسمی گوگل (Google One Promo URL):</label>
+                    <div className="vip-link-input-row">
+                      <input
+                        type="text"
+                        readOnly
+                        dir="ltr"
+                        className="en vip-input"
+                        value={latestApprovedOrder.activationLink}
+                      />
+                      <button
+                        type="button"
+                        className="btn-copy-action"
+                        onClick={() => handleCopyLink(latestApprovedOrder.activationLink!, 'vip_link')}
+                      >
+                        <Icon name={copiedLink === 'vip_link' ? 'check' : 'copy'} size={15} />
+                        <span>{copiedLink === 'vip_link' ? 'کپی شد!' : 'کپی لینک'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="vip-actions-row">
+                    <a
+                      href={latestApprovedOrder.activationLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn--vip-activate"
+                    >
+                      <span>ورود مستقیم به گوگل و فعال‌سازی اشتراک</span>
+                      <Icon name="external" size={16} />
+                    </a>
+                  </div>
+
+                  <div className="vip-guide-note">
+                    <Icon name="shield" size={15} />
+                    <span>
+                      <strong>راهنمای فعال‌سازی:</strong> پیش از کلیک روی لینک، ابزار تغییر IP (DNS Leak Free) خود را روشن کنید تا گوگل اشتراک را بدون خطا بر روی جیمیل شما ثبت نماید.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* لیست تاریخچه سفارشات */}
+              {orders.length === 0 ? (
+                <div className="profile-empty-state">
+                  <div className="profile-empty-icon">
+                    <Icon name="bag" size={38} />
+                  </div>
+                  <h4>هنوز سفارشی برای این حساب کاربری ثبت نشده است</h4>
+                  <p>
+                    پس از ثبت سفارش و واریز کارت به کارت، وضعیت بررسی فیش و لینک اختصاصی لایسنس گوگل در این بخش قرار می‌گیرد.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn--accent btn-empty-buy"
+                    onClick={() => {
+                      onClose();
+                      onBuy();
+                    }}
+                  >
+                    <Icon name="sparkle" size={16} />
+                    <span>خرید و فعال‌سازی اشتراک Google AI Pro</span>
                   </button>
                 </div>
               ) : (
-                orders.map((o) => (
-                  <div
-                    key={o.id}
-                    className={`customer-order-card customer-order-card--${o.status}`}
-                  >
-                    {/* ردیف بالای کارت سفارش */}
-                    <div className="customer-order-card__head">
-                      <div className="order-product-badge">
-                        <GeminiStar size={20} />
-                        <div>
-                          <strong>{o.productName}</strong>
-                          <span className="order-date-text">
-                            ثبت شده در: {new Date(o.createdAt).toLocaleDateString('fa-IR')} ساعت {new Date(o.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
+                <div className="orders-timeline-container">
+                  <div className="orders-section-header">
+                    <h4>تاریخچه و وضعیت سفارشات ({orders.length} مورد)</h4>
+                    {pendingOrders.length > 0 && (
+                      <span className="pending-alert-badge">
+                        <span className="pulse-dot" /> {pendingOrders.length} سفارش در حال بررسی
+                      </span>
+                    )}
+                  </div>
 
-                      <div className="order-price-col">
-                        <b>{formatToman(o.amountToman)} تومان</b>
-                        <span className="en order-track-id">کد پیگیری: {o.id}</span>
-                      </div>
-                    </div>
-
-                    {/* بدنه وضعیت و لینک فعال‌سازی لایسنس */}
-                    <div className="customer-order-card__body">
-                      {o.status === 'approved' && (
-                        <div className="license-active-box">
-                          <div className="license-active-box__status">
-                            <span className="status-badge-active">
-                              <Icon name="check" size={13} />
-                              <span>لایسنس فعال شد و آماده استفاده است</span>
-                            </span>
-                            <span className="activation-target-gmail">اکانت جیمیل: <b className="en">{o.gmail}</b></span>
-                          </div>
-
-                          <div className="license-link-wrap">
-                            <label>لینک اختصاصی دعوت رسمی گوگل (Google AI Pro Promo URL):</label>
-                            <div className="license-link-input-row">
-                              <input
-                                type="text"
-                                readOnly
-                                className="en"
-                                value={o.activationLink || 'در حال آماده‌سازی لینک رسمی...'}
-                              />
-                              {o.activationLink && (
-                                <button
-                                  type="button"
-                                  className="btn btn--sm btn--copy-link"
-                                  onClick={() => handleCopy(o.activationLink!, o.id)}
-                                >
-                                  <Icon name="copy" size={14} />
-                                  <span>{copiedLink === o.id ? 'کپی شد!' : 'کپی لینک'}</span>
-                                </button>
-                              )}
+                  <div className="orders-cards-stack">
+                    {orders.map((o) => (
+                      <div key={o.id} className={`order-card-item order-card-item--${o.status}`}>
+                        <div className="order-card-item__top">
+                          <div className="order-item-title-group">
+                            <strong>{o.productName}</strong>
+                            <div className="order-item-id-pill">
+                              <span className="en">{o.id}</span>
+                              <button
+                                type="button"
+                                className="btn-copy-tiny"
+                                onClick={() => handleCopyOrderId(o.id)}
+                                title="کپی کد سفارش"
+                              >
+                                {copiedOrderId === o.id ? '✓' : <Icon name="copy" size={12} />}
+                              </button>
                             </div>
                           </div>
 
-                          {o.activationLink && (
-                            <a
-                              href={o.activationLink}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="btn btn--activation-cta"
-                            >
-                              <span>ورود مستقیم به لینک فعال‌سازی گوگل</span>
-                              <Icon name="external" size={15} />
-                            </a>
-                          )}
-
-                          <div className="license-help-tip">
-                            <Icon name="shield" size={15} />
-                            <span>
-                              <strong>راهنمای فعال‌سازی:</strong> لطفاً قبل از کلیک روی لینک، ابزار تغییر IP معتبر (DNS Leak Free) خود را روشن فرمایید تا گوگل لایسنس را بدون خطا روی جیمیل شما ثبت نماید.
-                            </span>
+                          <div className="order-item-status-col">
+                            {o.status === 'approved' && (
+                              <span className="status-pill-order status-pill-order--approved">
+                                <Icon name="check" size={13} />
+                                <span>تأییدشده و فعال</span>
+                              </span>
+                            )}
+                            {o.status === 'pending_verification' && (
+                              <span className="status-pill-order status-pill-order--pending">
+                                <Icon name="clock" size={13} />
+                                <span>در نوبت بررسی فیش</span>
+                              </span>
+                            )}
+                            {o.status === 'rejected' && (
+                              <span className="status-pill-order status-pill-order--rejected">
+                                <Icon name="close" size={13} />
+                                <span>عدم تأیید فیش</span>
+                              </span>
+                            )}
+                            <b className="order-item-amount">{formatToman(o.amountToman)} <small>تومان</small></b>
                           </div>
                         </div>
-                      )}
 
-                      {o.status === 'pending_verification' && (
-                        <div className="license-pending-box">
-                          <div className="license-pending-box__status">
-                            <span className="status-badge-pending">
-                              <Icon name="clock" size={13} />
-                              <span>در انتظار بررسی واریز توسط کارشناسان</span>
-                            </span>
-                            <span className="order-pay-ref">شماره پیگیری فیش: <strong className="en">{o.paymentRef}</strong></span>
+                        {/* اطلاعات پرداختی */}
+                        <div className="order-item-meta-grid">
+                          <div>
+                            <span>تاریخ ثبت:</span>
+                            <small>{new Date(o.createdAt).toLocaleDateString('fa-IR')} ساعت {new Date(o.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</small>
                           </div>
-
-                          <p className="pending-desc">
-                            فیش واریزی شما با موفقیت دریافت شد و در نوبت استعلام بانکی قرار دارد (معمولاً ظرف ۲ الی ۴۸ ساعت کاری).
-                            به محض تأیید ادمین، <strong>لینک فعال‌سازی رسمی گوگل مستقیماً در همین بخش از پروفایل شما قرار خواهد گرفت</strong> و نیازی به تماس تلفنی نخواهد بود.
-                          </p>
-
-                          {onOpenChat && (
-                            <button
-                              type="button"
-                              className="btn btn--sm btn--ghost pending-support-btn"
-                              onClick={() => { onClose(); onOpenChat(); }}
-                            >
-                              <Icon name="headset" size={14} />
-                              <span>ارسال پیام به پشتیبانی جهت تسریع در بررسی</span>
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {o.status === 'rejected' && (
-                        <div className="license-rejected-box">
-                          <div className="status-badge-rejected">
-                            <Icon name="close" size={13} />
-                            <span>عدم تأیید فیش واریزی</span>
+                          <div>
+                            <span>جیمیل مقصد:</span>
+                            <small className="en text-highlight">{o.gmail}</small>
                           </div>
-                          <p className="rejected-reason">
-                            علت: {o.adminNotes || 'عدم تطابق مبلغ یا فیش واریزی نامعتبر.'}
-                          </p>
-                          {onOpenChat && (
-                            <button
-                              type="button"
-                              className="btn btn--sm btn--ghost"
-                              onClick={() => { onClose(); onOpenChat(); }}
-                            >
-                              <Icon name="headset" size={14} />
-                              <span>ارتباط با پشتیبانی و ارسال مجدد فیش</span>
-                            </button>
-                          )}
+                          <div>
+                            <span>شماره پیگیری فیش:</span>
+                            <small className="en">{o.paymentRef}</small>
+                          </div>
+                          <div>
+                            <span>روش واریز:</span>
+                            <small>{o.paymentMethod === 'bezanbekart' ? 'درگاه بزن به کارت' : 'کارت به کارت'}</small>
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        {/* وضعیت جزئیات لینک فعال‌سازی */}
+                        {o.status === 'approved' && o.activationLink && (
+                          <div className="order-item-activation-section">
+                            <div className="order-link-mini-row">
+                              <input type="text" readOnly className="en mini-link-input" value={o.activationLink} />
+                              <button
+                                type="button"
+                                className="btn btn--sm btn--outline"
+                                onClick={() => handleCopyLink(o.activationLink!, o.id)}
+                              >
+                                {copiedLink === o.id ? '✓ کپی شد' : 'کپی لینک'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {o.status === 'pending_verification' && (
+                          <div className="order-item-pending-notice">
+                            <div className="pending-notice-head">
+                              <Icon name="clock" size={15} />
+                              <span>فیش واریزی شما ثبت شده و در نوبت بررسی دستی پشتیبانی قرار دارد (معمولاً ۲ الی ۴۸ ساعت).</span>
+                            </div>
+                            {onOpenChat && (
+                              <button
+                                type="button"
+                                className="btn btn--sm btn--ghost btn-chat-nudge"
+                                onClick={() => {
+                                  onClose();
+                                  onOpenChat();
+                                }}
+                              >
+                                <Icon name="headset" size={14} />
+                                <span>ارسال پیام به پشتیبانی چت جهت پیگیری</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {o.status === 'rejected' && (
+                          <div className="order-item-rejected-notice">
+                            <strong>علت عدم تأیید:</strong>
+                            <p>{o.adminNotes || 'عدم تطابق فیش واریزی با مبلغ یا شماره ارجاع نامعتبر.'}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))
+                </div>
               )}
             </div>
           )}
 
-          {/* تب ۲: ویرایش مشخصات */}
+          {/* ==================== تب ۲: تنظیمات و مشخصات کاربری ==================== */}
           {activeTab === 'profile' && (
-            <div className="profile-settings-tab">
-              <form onSubmit={handleSaveProfile} className="profile-form">
-                <div className="profile-field">
-                  <label>نام و نام خانوادگی:</label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required
-                  />
+            <div className="profile-settings-view">
+              <div className="profile-card">
+                <div className="profile-card__head">
+                  <Icon name="user" size={18} />
+                  <div>
+                    <h4>اطلاعات هویتی خریدار</h4>
+                    <p>مشخصات شما جهت ثبت رسمی اشتراک و پیگیری لایسنس هوش مصنوعی استفاده می‌شود</p>
+                  </div>
                 </div>
 
-                <div className="profile-field">
-                  <label>شماره موبایل (ثابت و شناسه کاربری):</label>
-                  <input
-                    type="text"
-                    readOnly
-                    dir="ltr"
-                    className="en input-disabled"
-                    value={user.mobile}
-                  />
-                  <small>شماره موبایل به عنوان شناسه یکتای پیگیری سفارشات شما محفوظ است</small>
+                <form onSubmit={handleSaveProfile} className="profile-settings-form">
+                  <div className="form-group">
+                    <label>نام و نام خانوادگی:</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="مثال: علی احمدی"
+                      required
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>آدرس جیمیل پیش‌فرض (جهت فعال‌سازی اکانت گوگل):</label>
+                    <input
+                      type="email"
+                      dir="ltr"
+                      className="en"
+                      value={editGmail}
+                      onChange={(e) => setEditGmail(e.target.value)}
+                      placeholder="name@gmail.com"
+                      required
+                    />
+                    <small>اکانت جیمیل شما که اشتراک ۱۸ ماهه Google AI Pro روی آن اعمال خواهد شد</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>شماره تماس همراه (تأییدشده):</label>
+                    <div className="verified-mobile-field">
+                      <input
+                        type="text"
+                        readOnly
+                        dir="ltr"
+                        className="en input-readonly"
+                        value={user.mobile || 'ثبت‌نشده'}
+                      />
+                      <span className="verified-badge">
+                        <Icon name="check" size={13} />
+                        <span>تأییدشده با OTP</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {savedNote && (
+                    <div className="profile-success-toast">
+                      <Icon name="check" size={16} />
+                      <span>تغییرات مشخصات با موفقیت ذخیره شد.</span>
+                    </div>
+                  )}
+
+                  <div className="form-actions-row">
+                    <button type="submit" className="btn btn--accent">
+                      <span>ذخیره تغییرات مشخصات</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* بخش مجزا و شفاف امنیت نشست و خروج از حساب (کاملاً تفکیک‌شده از دکمه بستن) */}
+              <div className="profile-security-card">
+                <div className="profile-security-card__info">
+                  <div className="security-icon-wrap">
+                    <Icon name="shield" size={20} />
+                  </div>
+                  <div>
+                    <h4>نشست کاربری و امنیت حساب</h4>
+                    <p>
+                      برای خروج از حساب کاربری روی این مرورگر، از دکمه روبه‌رو استفاده فرمایید. تمام سفارشات و لایسنس‌های شما بر روی ایمیل و شماره همراه شما محفوظ خواهد ماند.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="profile-field">
-                  <label>آدرس جیمیل پیش‌فرض (جهت فعال‌سازی هوش مصنوعی):</label>
-                  <input
-                    type="email"
-                    dir="ltr"
-                    className="en"
-                    value={editGmail}
-                    onChange={(e) => setEditGmail(e.target.value)}
-                    placeholder="account@gmail.com"
-                  />
-                </div>
-
-                {savedNote && <div className="profile-saved-alert">مشخصات شما با موفقیت ذخیره شد.</div>}
-
-                <div className="profile-actions">
-                  <button type="submit" className="btn btn--accent">
-                    ذخیره تغییرات مشخصات
-                  </button>
-                </div>
-              </form>
+                <button
+                  type="button"
+                  className="btn-logout-danger"
+                  onClick={handleLogout}
+                  title="خروج از حساب کاربری جاری"
+                >
+                  <Icon name="logout" size={16} />
+                  <span>خروج از حساب کاربری</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

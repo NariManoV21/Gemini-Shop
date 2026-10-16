@@ -5,6 +5,7 @@ import { formatToman } from '../lib/format';
 import { getCurrentUser, loginOrRegisterCustomer, requestEmailOtp, verifyEmailOtp } from '../services/authService';
 import { createStoreOrder, type StoreOrder } from '../services/orderStorage';
 import { Icon } from './Icon';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import './CheckoutModal.css';
 
 interface Props {
@@ -19,6 +20,7 @@ const normalizeDigits = (s: string) =>
   s.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 
 export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProfile }: Props) {
+  useBodyScrollLock(open);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -68,13 +70,11 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
       if (!gmail && existing.gmail) setGmail(existing.gmail);
     }
     lastFocus.current = document.activeElement as HTMLElement;
-    document.body.style.overflow = 'hidden';
     const t = setTimeout(() => firstRef.current?.focus(), 80);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     window.addEventListener('keydown', onKey);
     return () => {
       clearTimeout(t);
-      document.body.style.overflow = '';
       window.removeEventListener('keydown', onKey);
       lastFocus.current?.focus();
     };
