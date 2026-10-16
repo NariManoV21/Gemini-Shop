@@ -36,16 +36,37 @@ export default function App() {
     return () => window.removeEventListener('gemini_auth_changed', handleAuth);
   }, []);
 
-  // باز کردن خودکار پنل ادمین در صورت وجود #admin در آدرس
+  // باز کردن محرمانه پنل ادمین از طریق هش URL، پارامتر پورتال یا کلید میانبر کیبورد (Ctrl + Shift + A)
   useEffect(() => {
-    const checkHash = () => {
-      if (window.location.hash === '#admin') {
+    const checkAdminTrigger = () => {
+      const hash = window.location.hash.toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      if (
+        hash === '#admin-portal' ||
+        hash === '#admin' ||
+        params.get('portal') === 'admin' ||
+        params.get('admin') === '1'
+      ) {
         setAdminOpen(true);
       }
     };
-    checkHash();
-    window.addEventListener('hashchange', checkHash);
-    return () => window.removeEventListener('hashchange', checkHash);
+
+    checkAdminTrigger();
+    window.addEventListener('hashchange', checkAdminTrigger);
+
+    // کلید میانبر امن برای مدیران سایت: Ctrl + Shift + A یا Cmd + Shift + A
+    const handleAdminKeydown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A' || e.key === 'ش')) {
+        e.preventDefault();
+        setAdminOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleAdminKeydown);
+
+    return () => {
+      window.removeEventListener('hashchange', checkAdminTrigger);
+      window.removeEventListener('keydown', handleAdminKeydown);
+    };
   }, []);
 
   const openCheckout = useCallback(() => setCheckout(true), []);
@@ -61,11 +82,18 @@ export default function App() {
     setTrackOrderId(undefined);
   }, []);
 
-  const openAdmin = useCallback(() => setAdminOpen(true), []);
   const closeAdmin = useCallback(() => {
     setAdminOpen(false);
-    if (window.location.hash === '#admin') {
+    const hash = window.location.hash.toLowerCase();
+    if (hash === '#admin-portal' || hash === '#admin') {
       history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('portal') === 'admin' || params.get('admin') === '1') {
+      params.delete('portal');
+      params.delete('admin');
+      const cleanSearch = params.toString() ? `?${params.toString()}` : '';
+      history.replaceState(null, '', window.location.pathname + cleanSearch + window.location.hash);
     }
   }, []);
 
@@ -106,7 +134,7 @@ export default function App() {
         <CtaBand product={product} onBuy={openCheckout} />
       </main>
       <WaveDivider color="pearl" />
-      <Footer onOpenAdmin={openAdmin} />
+      <Footer />
       <CheckoutModal
         product={product}
         open={checkout}

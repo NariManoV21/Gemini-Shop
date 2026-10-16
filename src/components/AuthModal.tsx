@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from './Icon';
-import { isValidIranianMobile, sanitizeMobile } from '../lib/sanitize';
-import { requestSmsOtp, verifySmsOtp, type UserProfile } from '../services/authService';
+import { sanitizeEmail, sanitizeMobile, isValidIranianMobile } from '../lib/sanitize';
+import { requestEmailOtp, verifyEmailOtp, type UserProfile } from '../services/authService';
 import './AuthModal.css';
 
 interface Props {
@@ -13,10 +13,10 @@ interface Props {
 export function AuthModal({ open, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [fullName, setFullName] = useState('');
-  const [mobile, setMobile] = useState('');
   const [gmail, setGmail] = useState('');
+  const [mobile, setMobile] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [simulationCode, setSimulationCode] = useState<string | null>(null);
@@ -58,7 +58,7 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
 
   if (!open) return null;
 
-  // مرحله ۱: ارسال کد تایید پیامکی با sms.ir
+  // مرحله ۱: ارسال کد تایید به جیمیل خریدار
   const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -68,14 +68,20 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
       return;
     }
 
-    if (!isValidIranianMobile(mobile)) {
-      setError('شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹).');
+    const cleanGmail = sanitizeEmail(gmail);
+    if (!cleanGmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanGmail)) {
+      setError('لطفاً یک آدرس ایمیل معتبر (مانند yourname@gmail.com) وارد فرمایید.');
+      return;
+    }
+
+    if (mobile.trim() && !isValidIranianMobile(mobile)) {
+      setError('شماره موبایل وارد شده باید ۱۱ رقم و با ۰۹ شروع شود.');
       return;
     }
 
     setLoading(true);
     const cleanMobile = sanitizeMobile(mobile);
-    const result = await requestSmsOtp(cleanMobile);
+    const result = await requestEmailOtp(cleanGmail, fullName, cleanMobile);
     setLoading(false);
 
     if (result.success) {
@@ -86,7 +92,7 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
       }
       setTimeout(() => otpInputRef.current?.focus(), 100);
     } else {
-      setError(result.error || 'خطا در برقراری ارتباط با سامانه پیامکی.');
+      setError(result.error || 'خطا در ارسال کد تایید ایمیلی.');
     }
   };
 
@@ -102,8 +108,9 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
     }
 
     setLoading(true);
+    const cleanGmail = sanitizeEmail(gmail);
     const cleanMobile = sanitizeMobile(mobile);
-    const result = await verifySmsOtp(cleanMobile, cleanCode, fullName, gmail);
+    const result = await verifyEmailOtp(cleanGmail, cleanCode, fullName, cleanMobile);
     setLoading(false);
 
     if (result.success && result.user) {
@@ -114,14 +121,15 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
     }
   };
 
-  // ارسال مجدد کد پیامکی
+  // ارسال مجدد کد ایمیلی
   const handleResendOtp = async () => {
     if (timer > 0 || loading) return;
     setError(null);
     setLoading(true);
 
+    const cleanGmail = sanitizeEmail(gmail);
     const cleanMobile = sanitizeMobile(mobile);
-    const result = await requestSmsOtp(cleanMobile);
+    const result = await requestEmailOtp(cleanGmail, fullName, cleanMobile);
     setLoading(false);
 
     if (result.success) {
@@ -141,11 +149,11 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
           <div className="auth-card__icon-wrap">
             <Icon name={step === 1 ? 'user' : 'shield'} size={24} />
           </div>
-          <h2>{step === 1 ? 'ورود به حساب با تایید پیامکی' : 'تایید شماره موبایل'}</h2>
+          <h2>{step === 1 ? 'ورود به حساب با تأیید ایمیل' : 'تأیید آدرس ایمیل'}</h2>
           <p>
             {step === 1
-              ? 'جهت امنیت و پیگیری سفارشات، ورود از طریق کد پیامکی یکبارمصرف انجام می‌شود'
-              : `کد تایید ۵ رقمی ارسال‌شده به شماره ${mobile} را وارد فرمایید`}
+              ? 'جهت امنیت و پیگیری سفارشات، ورود از طریق کد یکبارمصرف ارسالی به ایمیل انجام می‌شود'
+              : `کد تایید ۵ رقمی ارسال‌شده به ${gmail} را وارد فرمایید:`}
           </p>
           <button className="auth-card__close" onClick={onClose} aria-label="بستن">
             <Icon name="close" size={18} />
@@ -183,7 +191,20 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
             </div>
 
             <div className="auth-card__field">
-              <label>شماره موبایل (جهت دریافت پیامک کد تایید):</label>
+              <label>آدرس ایمیل / جیمیل شخصی (جهت دریافت کد تأیید):</label>
+              <input
+                type="email"
+                placeholder="name@gmail.com"
+                dir="ltr"
+                value={gmail}
+                onChange={(e) => setGmail(e.target.value)}
+                required
+              />
+              <small>اکانت جیمیل شما که اشتراک ۱۸ ماهه Google AI Pro روی آن فعال خواهد شد</small>
+            </div>
+
+            <div className="auth-card__field">
+              <label>شماره تماس همراه (جهت هماهنگی و پشتیبانی):</label>
               <input
                 type="tel"
                 placeholder="۰۹۱۲۳۴۵۶۷۸۹"
@@ -194,25 +215,13 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
               />
             </div>
 
-            <div className="auth-card__field">
-              <label>آدرس جیمیل شما (اختیاری):</label>
-              <input
-                type="email"
-                placeholder="name@gmail.com"
-                dir="ltr"
-                value={gmail}
-                onChange={(e) => setGmail(e.target.value)}
-              />
-              <small>اکانت جیمیل شخصی شما که اشتراک Google AI Pro روی آن فعال خواهد شد</small>
-            </div>
-
             <div className="auth-card__actions">
               <button
                 type="submit"
                 className="btn btn--accent auth-card__submit-btn"
                 disabled={loading}
               >
-                <span>{loading ? 'در حال ارسال پیامک...' : 'دریافت کد تایید پیامکی'}</span>
+                <span>{loading ? 'در حال ارسال ایمیل...' : 'دریافت کد تایید ایمیلی'}</span>
                 <Icon name="arrow" size={16} />
               </button>
             </div>
@@ -248,7 +257,7 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
                   onClick={handleResendOtp}
                   disabled={loading}
                 >
-                  ارسال مجدد کد پیامکی
+                  ارسال مجدد ایمیل کد
                 </button>
               )}
               <button
@@ -259,7 +268,7 @@ export function AuthModal({ open, onClose, onSuccess }: Props) {
                   setOtpCode('');
                 }}
               >
-                ویرایش شماره
+                ویرایش مشخصات
               </button>
             </div>
 

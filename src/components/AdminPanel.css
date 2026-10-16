@@ -1017,3 +1017,118 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* نشان‌های نقش و هویت ادمین */
+.admin-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.admin-role-badge--head {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(234, 179, 8, 0.18));
+  color: #7e22ce;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.admin-role-badge--regular {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+}
+
+.admin-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+.admin-profile-pill__name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* بخش مدیریت همکاران و ادمین‌ها */
+.admins-management {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.admins-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.admins-header-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: #0f172a;
+  font-weight: 800;
+}
+.admins-header-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+.admins-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+.admins-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: right;
+}
+.admins-table th {
+  background: #f8fafc;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+.admins-table td {
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+}
+.admins-table tr:last-child td {
+  border-bottom: none;
+}
+.admin-del-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #e11d48;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.admin-del-btn:hover:not(:disabled) {
+  background: #ffe4e6;
+  border-color: #fda4af;
+}
+.admin-del-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

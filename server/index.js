@@ -1,9 +1,10 @@
 /**
- * سرور امن و مستقل بک‌اند فروشگاه Google AI Pro
+ * سرور امن و مستقل بک‌اند فروشگاه Gemini Shop
  * معماری فوق‌سریع بر پایه Node.js Native HTTP با دیتابیس پایدار مبتنی بر فایل JSON.
  * مجهز به استانداردهای امنیتی کامل:
- * - سیستم ورود و ثبت‌نام با پیامک و کد تأیید یکبارمصرف (OTP via sms.ir UltraFastSend)
- * - حفاظت در برابر DoS و Spam با محدودیت حجم بدنه درخواست (Max 100KB) و نرخ درخواست پیامک (Cooldown 60s)
+ * - احراز هویت خریداران از طریق ارسال ایمیل کد تأیید یکبارمصرف (Gmail OTP via TLS Port 465)
+ * - پنل مدیریت دو سطحی با کنترل دسترسی نقش‌محور (RBAC: head_admin و regular_admin)
+ * - حفاظت در برابر DoS و Spam با محدودیت حجم بدنه درخواست (Max 100KB) و نرخ درخواست ایمیل (Cooldown 60s)
  * - مقایسه ایمن رمز عبور در برابر حملات تحلیل زمانی (Timing-Safe Comparison با SHA-256)
  * - پاک‌سازی ورودی‌ها و جلوگیری از XSS و تزریق اسکریپت
  * - محدودساز نرخ درخواست (Rate Limiting) برای جلوگیری از حملات Brute Force
@@ -13,6 +14,7 @@
 
 import http from 'node:http';
 import https from 'node:https';
+import tls from 'node:tls';
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -25,10 +27,20 @@ const PORT = process.env.PORT || 3001;
 const DATA_FILE = path.join(__dirname, 'gemini_store_data.json');
 const MAX_PAYLOAD_BYTES = 100 * 1024; // حداکثر ۱۰۰ کیلوبایت برای جلوگیری از DoS
 
-// حافظه توکن‌های فعال نشست ادمین
-const activeAdminTokens = new Set(['gemini_admin_session_token']);
+// حافظه توکن‌های فعال نشست ادمین: Map<token, { id, username, fullName, role }>
+const activeAdminSessions = new Map([
+  [
+    'gemini_admin_session_token',
+    {
+      id: 'adm_head_1',
+      username: 'admin',
+      fullName: 'نریمان موذنی (مدیر ارشد)',
+      role: 'head_admin',
+    },
+  ],
+]);
 
-// حافظه موقت کدهای تأیید پیامکی OTP در سرور: Map<mobile, { code, expiresAt, lastSentAt, attempts } >
+// حافظه موقت کدهای تأیید ایمیلی OTP در سرور: Map<email, { code, expiresAt, lastSentAt, attempts, fullName, mobile }>
 const activeOtpStore = new Map();
 
 // حافظه موقت Rate Limiter بر اساس IP
@@ -55,10 +67,21 @@ const defaultData = {
   settings: {
     adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
     priceToman: 499000,
-    smsApiKey: process.env.SMS_IR_API_KEY || '',
-    smsTemplateId: process.env.SMS_IR_TEMPLATE_ID || '',
-    smsParamName: process.env.SMS_IR_PARAM_NAME || 'Code',
+    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+    smtpPort: Number(process.env.SMTP_PORT) || 465,
+    smtpUser: process.env.SMTP_USER || '',
+    smtpPass: process.env.SMTP_PASS || '',
   },
+  admins: [
+    {
+      id: 'adm_head_1',
+      username: 'admin',
+      passwordHash: crypto.createHash('sha256').update('admin123').digest('hex'),
+      fullName: 'نریمان موذنی (مدیر ارشد)',
+      role: 'head_admin',
+      createdAt: new Date().toISOString(),
+    },
+  ],
 };
 
 function loadDatabase() {
@@ -69,11 +92,13 @@ function loadDatabase() {
     }
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    return {
+    const db = {
       ...defaultData,
       ...parsed,
       settings: { ...defaultData.settings, ...(parsed.settings || {}) },
+      admins: Array.isArray(parsed.admins) && parsed.admins.length > 0 ? parsed.admins : defaultData.admins,
     };
+    return db;
   } catch (err) {
     console.error('Error reading database file:', err);
     return defaultData;
@@ -106,6 +131,11 @@ function normalizeMobile(mobile) {
     .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
     .replace(/\D/g, '');
+}
+
+function normalizeEmail(email) {
+  if (!email || typeof email !== 'string') return '';
+  return email.trim().toLowerCase();
 }
 
 // پردازش امن بدنه درخواست‌های JSON با کنترل حجم
@@ -150,90 +180,226 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
-// ارسال پیامک پترن سریع از طریق وب‌سرویس sms.ir
-function sendSmsIrOtp(mobile, code, settings) {
+/**
+ * پیاده‌سازی سبک و فوق‌سریع ارسال ایمیل پروتکل SMTP با TLS بومی Node.js
+ * اتصال مستقیم به smtp.gmail.com روی پورت 465 با احراز هویت App Password
+ */
+function sendSmtpTlsMail({ host, port, user, pass, to, subject, html, text }) {
   return new Promise((resolve) => {
-    const apiKey = settings.smsApiKey || process.env.SMS_IR_API_KEY;
-    const templateId = settings.smsTemplateId || process.env.SMS_IR_TEMPLATE_ID;
-    const paramName = settings.smsParamName || process.env.SMS_IR_PARAM_NAME || 'Code';
-
-    if (!apiKey || !templateId) {
-      // در صورتی که کاربر هنوز API Key را ثبت نکرده باشد، لاگ سرور ثبت شده و شبیه‌سازی انجام می‌شود
-      console.log(`\n======================================================`);
-      console.log(`[SMS.IR SIMULATION] پیامک کد تأیید ارسال شد:`);
-      console.log(`شماره خریدار: ${mobile}`);
-      console.log(`کد ۵ رقمی تأیید: ${code}`);
-      console.log(`(جهت ارسال پیامک واقعی، کافیست API Key و TemplateID سامانه sms.ir در پنل وارد شود)`);
-      console.log(`======================================================\n`);
-      return resolve({ success: true, isSimulation: true, code });
-    }
-
-    const payload = JSON.stringify({
-      mobile: mobile,
-      templateId: Number(templateId) || templateId,
-      parameters: [{ name: paramName, value: String(code) }],
-    });
-
-    const options = {
-      hostname: 'api.sms.ir',
-      port: 443,
-      path: '/v1/send/verify',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/plain',
-        'x-api-key': apiKey,
-        'Content-Length': Buffer.byteLength(payload),
+    const cleanPass = pass.replace(/\s+/g, '');
+    const socket = tls.connect(
+      {
+        host: host || 'smtp.gmail.com',
+        port: Number(port) || 465,
+        minVersion: 'TLSv1.2',
       },
+      () => {
+        // اتصال TLS برقرار شد
+      }
+    );
+
+    let buffer = '';
+    let step = 0;
+
+    const send = (line) => {
+      socket.write(line + '\r\n');
     };
 
-    const req = https.request(options, (res) => {
-      let responseBody = '';
-      res.on('data', (d) => (responseBody += d));
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(responseBody);
-          if (res.statusCode >= 200 && res.statusCode < 300 && parsed.status === 1) {
-            console.log(`[SMS.IR Live Success] کد ${code} به شماره ${mobile} با موفقیت ارسال شد.`);
-            resolve({ success: true, isSimulation: false, data: parsed });
-          } else {
-            console.error('[SMS.IR Live Error]', parsed);
-            resolve({
-              success: false,
-              isSimulation: false,
-              error: parsed.message || 'خطا در ارتباط با سامانه پیامکی sms.ir',
-            });
-          }
-        } catch {
-          resolve({ success: res.statusCode === 200, raw: responseBody });
+    socket.setEncoding('utf8');
+
+    socket.on('data', (chunk) => {
+      buffer += chunk;
+      const lines = buffer.split('\r\n');
+      buffer = lines.pop(); // باقیمانده خط ناقص بعدی
+
+      for (const line of lines) {
+        if (!line) continue;
+        const code = parseInt(line.slice(0, 3), 10);
+        const isLastLineOfReply = line.charAt(3) !== '-';
+        if (!isLastLineOfReply) continue;
+
+        if (code >= 400) {
+          console.error(`[SMTP Error ${code}]`, line);
+          try {
+            socket.destroy();
+          } catch {}
+          return resolve({ success: false, error: line });
         }
-      });
+
+        if (step === 0 && code === 220) {
+          step = 1;
+          send('EHLO localhost');
+        } else if (step === 1 && code === 250) {
+          step = 2;
+          send('AUTH LOGIN');
+        } else if (step === 2 && code === 334) {
+          step = 3;
+          send(Buffer.from(user).toString('base64'));
+        } else if (step === 3 && code === 334) {
+          step = 4;
+          send(Buffer.from(cleanPass).toString('base64'));
+        } else if (step === 4 && code === 235) {
+          step = 5;
+          send(`MAIL FROM:<${user}>`);
+        } else if (step === 5 && code === 250) {
+          step = 6;
+          send(`RCPT TO:<${to}>`);
+        } else if (step === 6 && code === 250) {
+          step = 7;
+          send('DATA');
+        } else if (step === 7 && code === 354) {
+          step = 8;
+          const boundary = '----=_Part_' + Date.now();
+          const emailData = [
+            `From: "Gemini Shop" <${user}>`,
+            `To: <${to}>`,
+            `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+            'MIME-Version: 1.0',
+            `Content-Type: multipart/alternative; boundary="${boundary}"`,
+            '',
+            `--${boundary}`,
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            Buffer.from(text || '').toString('base64'),
+            '',
+            `--${boundary}`,
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            Buffer.from(html || '').toString('base64'),
+            '',
+            `--${boundary}--`,
+            '.',
+          ].join('\r\n');
+          socket.write(emailData + '\r\n');
+        } else if (step === 8 && code === 250) {
+          step = 9;
+          send('QUIT');
+          return resolve({ success: true });
+        }
+      }
     });
 
-    req.on('error', (e) => {
-      console.error('[SMS.IR Request Network Error]', e.message);
-      resolve({ success: false, error: 'خطای شبکه در اتصال به sms.ir' });
+    socket.on('error', (err) => {
+      console.error('[SMTP Socket Error]', err.message);
+      resolve({ success: false, error: err.message });
     });
 
-    req.write(payload);
-    req.end();
+    socket.setTimeout(15000, () => {
+      try {
+        socket.destroy();
+      } catch {}
+      resolve({ success: false, error: 'SMTP Timeout after 15s' });
+    });
   });
 }
 
-// بررسی امن رمز عبور ادمین با مقایسه با زمان ثابت (Timing-Safe)
-function verifyAdminPassword(inputPassword, targetPassword) {
-  if (!inputPassword || !targetPassword) return false;
-  const hash1 = crypto.createHash('sha256').update(String(inputPassword)).digest();
-  const hash2 = crypto.createHash('sha256').update(String(targetPassword)).digest();
-  return crypto.timingSafeEqual(hash1, hash2);
+/**
+ * ارسال ایمیل کد ۵ رقمی تأیید OTP به کاربر
+ * اگر اطلاعات اکانت جیمیل در تنظیمات ثبت نشده باشد، شبیه‌سازی انجام می‌شود
+ */
+async function sendGmailOtp(email, fullName, code, settings) {
+  const displayName = fullName ? fullName.trim() : 'خریدار محترم';
+  const user = settings.smtpUser || process.env.SMTP_USER;
+  const pass = settings.smtpPass || process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    console.log(`\n======================================================`);
+    console.log(`[GMAIL OTP SIMULATION] کد تأیید ایمیلی تولید شد:`);
+    console.log(`گیرنده: ${displayName} <${email}>`);
+    console.log(`کد ۵ رقمی تأیید: ${code}`);
+    console.log(`(جهت ارسال ایمیل زنده، مشخصات Gmail و App Password در پنل مدیریت ثبت شود)`);
+    console.log(`======================================================\n`);
+    return { success: true, isSimulation: true, code };
+  }
+
+  const subject = `کد تایید ورود به Gemini Shop: ${code}`;
+  const textBody = `سلام ${displayName} عزیز،\nکد تایید شما برای ورود به فروشگاه Gemini Shop برابر است با: ${code}\nاین کد به مدت ۲ دقیقه معتبر می‌باشد.`;
+
+  const htmlBody = `
+  <!DOCTYPE html>
+  <html dir="rtl" lang="fa">
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #0f172a; margin: 0; padding: 24px; color: #f8fafc; direction: rtl; }
+      .container { max-width: 520px; margin: 0 auto; background: #1e293b; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); padding: 32px 28px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+      .brand { font-size: 20px; font-weight: 800; color: #a855f7; letter-spacing: -0.5px; margin-bottom: 24px; text-align: center; }
+      .greeting { font-size: 16px; color: #e2e8f0; margin-bottom: 12px; line-height: 1.6; }
+      .desc { font-size: 14px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
+      .code-box { background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(59,130,246,0.15)); border: 1px solid rgba(168,85,247,0.3); border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 24px; }
+      .code { font-size: 34px; font-weight: 800; letter-spacing: 8px; color: #38bdf8; font-family: monospace; }
+      .expiry { font-size: 13px; color: #e2e8f0; margin-top: 8px; }
+      .footer-note { font-size: 12px; color: #64748b; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="brand">✦ Gemini Shop — پشتیبانی رسمی</div>
+      <div class="greeting">سلام <b>${displayName}</b> عزیز،</div>
+      <div class="desc">کد یکبارمصرف جهت تایید ایمیل و پیگیری سفارش اشتراک ۱۸ ماهه Google AI Pro شما صادر گردید:</div>
+      <div class="code-box">
+        <div class="code">${code}</div>
+        <div class="expiry">⏱️ اعتبار کد: ۲ دقیقه</div>
+      </div>
+      <div class="footer-note">
+        این ایمیل به صورت خودکار از سوی فروشگاه Gemini Shop ارسال شده است.<br>
+        اگر شما این درخواست را ثبت نکرده‌اید، لطفاً این پیام را نادیده بگیرید.
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  const result = await sendSmtpTlsMail({
+    host: settings.smtpHost || 'smtp.gmail.com',
+    port: settings.smtpPort || 465,
+    user,
+    pass,
+    to: email,
+    subject,
+    html: htmlBody,
+    text: textBody,
+  });
+
+  if (result.success) {
+    console.log(`[Gmail Live OTP] ایمیل کد تأیید با موفقیت به ${email} ارسال شد.`);
+    return { success: true, isSimulation: false };
+  } else {
+    console.error(`[Gmail OTP Failed]`, result.error);
+    return { success: false, isSimulation: false, error: result.error };
+  }
 }
 
-// بررسی دسترسی ادمین بر اساس توکن هدر Authorization
-function isAuthorizedAdmin(req) {
+// بررسی امن رمز عبور ادمین با مقایسه با زمان ثابت (Timing-Safe)
+function verifyAdminPassword(inputPassword, storedHashOrPlain) {
+  if (!inputPassword || !storedHashOrPlain) return false;
+  const inputHash = crypto.createHash('sha256').update(String(inputPassword)).digest('hex');
+  const targetHash = storedHashOrPlain.length === 64
+    ? storedHashOrPlain
+    : crypto.createHash('sha256').update(String(storedHashOrPlain)).digest('hex');
+
+  const b1 = Buffer.from(inputHash, 'utf8');
+  const b2 = Buffer.from(targetHash, 'utf8');
+  return crypto.timingSafeEqual(b1, b2);
+}
+
+// استخراج اطلاعات ادمین احراز هویت شده از هدر Authorization
+function getAuthenticatedAdmin(req) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!token) return false;
-  return activeAdminTokens.has(token);
+  if (!token) return null;
+  return activeAdminSessions.get(token) || null;
+}
+
+function isAuthorizedAdmin(req) {
+  return Boolean(getAuthenticatedAdmin(req));
+}
+
+function isHeadAdmin(req) {
+  const admin = getAuthenticatedAdmin(req);
+  return admin && admin.role === 'head_admin';
 }
 
 const server = http.createServer(async (req, res) => {
@@ -249,7 +415,7 @@ const server = http.createServer(async (req, res) => {
 
   const clientIp = req.socket.remoteAddress || 'unknown';
   if (!checkRateLimit(clientIp, 120, 60000)) {
-    return sendJson(res, 429, { error: 'Too many requests. Please slow down.' });
+    return sendJson(res, 429, { error: 'تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی صبر فرمایید.' });
   }
 
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -261,29 +427,32 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/health' && req.method === 'GET') {
       return sendJson(res, 200, {
         status: 'ok',
-        version: '2.1.0',
+        version: '3.0.0',
         uptimeSeconds: Math.floor(process.uptime()),
-        hasSmsConfigured: Boolean(db.settings.smsApiKey && db.settings.smsTemplateId),
+        hasSmtpConfigured: Boolean(db.settings.smtpUser && db.settings.smtpPass),
+        adminsCount: db.admins.length,
         timestamp: new Date().toISOString(),
       });
     }
 
-    // ۲. ارسال کد تایید یکبار مصرف پیامکی (Send OTP)
+    // ۲. ارسال کد تایید یکبار مصرف ایمیلی (Send Gmail OTP)
     if (pathname === '/api/auth/send-otp' && req.method === 'POST') {
       const body = await parseRequestBody(req);
-      const cleanMobile = normalizeMobile(body.mobile);
+      const cleanEmail = normalizeEmail(body.email || body.gmail);
+      const cleanFullName = sanitizeText(body.fullName || '', 100);
+      const cleanMobile = normalizeMobile(body.mobile || '');
 
-      if (!/^09\d{9}$/.test(cleanMobile)) {
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
         return sendJson(res, 400, {
           success: false,
-          error: 'شماره موبایل وارد شده معتبر نیست. لطفاً شماره ۱۱ رقمی با فرمت ۰۹ وارد فرمایید.',
+          error: 'آدرس ایمیل وارد شده معتبر نیست. لطفاً یک ایمیل صحیح وارد فرمایید.',
         });
       }
 
       const now = Date.now();
-      const existing = activeOtpStore.get(cleanMobile);
+      const existing = activeOtpStore.get(cleanEmail);
 
-      // محدودساز ارسال مجدد (Cooldown ۶۰ ثانیه‌ای برای جلوگیری از هزینه‌تراشی و اسپم)
+      // محدودساز ارسال مجدد (Cooldown ۶۰ ثانیه‌ای)
       if (existing && now - existing.lastSentAt < 60000) {
         const remainingSec = Math.ceil((60000 - (now - existing.lastSentAt)) / 1000);
         return sendJson(res, 429, {
@@ -296,48 +465,51 @@ const server = http.createServer(async (req, res) => {
       // تولید کد ۵ رقمی امن
       const code = String(Math.floor(10000 + Math.random() * 90000));
 
-      activeOtpStore.set(cleanMobile, {
+      activeOtpStore.set(cleanEmail, {
         code,
         expiresAt: now + 2 * 60 * 1000, // ۲ دقیقه اعتبار
         lastSentAt: now,
         attempts: 0,
+        fullName: cleanFullName,
+        mobile: cleanMobile,
       });
 
-      // ارسال پیامک با sms.ir
-      const smsResult = await sendSmsIrOtp(cleanMobile, code, db.settings);
+      // ارسال ایمیل از طریق جیمیل SMTP
+      const mailResult = await sendGmailOtp(cleanEmail, cleanFullName, code, db.settings);
 
       return sendJson(res, 200, {
         success: true,
-        message: 'کد تایید پیامکی با موفقیت ارسال شد.',
+        message: 'کد تایید با موفقیت به ایمیل شما ارسال شد.',
         cooldownSeconds: 60,
-        isSimulation: smsResult.isSimulation,
-        // در حالت شبیه‌سازی برای تست سریع، کد در پاسخ برگردانده می‌شود
-        simulationCode: smsResult.isSimulation ? code : undefined,
+        isSimulation: mailResult.isSimulation,
+        simulationCode: mailResult.isSimulation ? code : undefined,
       });
     }
 
-    // ۳. اعتبارسنجی کد پیامکی و ورود خریدار (Verify OTP)
+    // ۳. اعتبارسنجی کد ایمیلی و ورود خریدار (Verify OTP)
     if (pathname === '/api/auth/verify-otp' && req.method === 'POST') {
       const body = await parseRequestBody(req);
-      const cleanMobile = normalizeMobile(body.mobile);
+      const cleanEmail = normalizeEmail(body.email || body.gmail);
       const cleanCode = normalizeMobile(body.code);
+      const cleanFullName = sanitizeText(body.fullName || '', 100);
+      const cleanMobile = normalizeMobile(body.mobile || '');
 
-      if (!cleanMobile || !cleanCode) {
-        return sendJson(res, 400, { success: false, error: 'شماره موبایل و کد تایید الزامی است.' });
+      if (!cleanEmail || !cleanCode) {
+        return sendJson(res, 400, { success: false, error: 'آدرس ایمیل و کد تایید الزامی است.' });
       }
 
-      const record = activeOtpStore.get(cleanMobile);
+      const record = activeOtpStore.get(cleanEmail);
       const now = Date.now();
 
       if (!record) {
         return sendJson(res, 400, {
           success: false,
-          error: 'کد تایید منقضی شده است یا درخواستی برای این شماره ثبت نشده است. لطفاً مجدداً درخواست دهید.',
+          error: 'کد تایید منقضی شده است یا درخواستی برای این ایمیل ثبت نشده است. لطفاً مجدداً درخواست دهید.',
         });
       }
 
       if (now > record.expiresAt) {
-        activeOtpStore.delete(cleanMobile);
+        activeOtpStore.delete(cleanEmail);
         return sendJson(res, 400, {
           success: false,
           error: 'کد تایید منقضی شده است. لطفاً کد جدید دریافت کنید.',
@@ -346,7 +518,7 @@ const server = http.createServer(async (req, res) => {
 
       record.attempts = (record.attempts || 0) + 1;
       if (record.attempts > 5) {
-        activeOtpStore.delete(cleanMobile);
+        activeOtpStore.delete(cleanEmail);
         return sendJson(res, 429, {
           success: false,
           error: 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً مجدداً درخواست کد فرمایید.',
@@ -360,15 +532,15 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      // کد تایید صحیح است -> حذف از حافظه
-      activeOtpStore.delete(cleanMobile);
+      // کد تایید صحیح است -> حذف از حافظه موقت
+      activeOtpStore.delete(cleanEmail);
 
-      // ساخت یا بروزرسانی پروفایل مشتری
+      // ساخت یا به‌روزرسانی پروفایل مشتری
       const user = {
-        id: `cust_${cleanMobile}`,
-        fullName: sanitizeText(body.fullName || 'کاربر Gemini Pro', 100),
-        mobile: cleanMobile,
-        gmail: sanitizeText(body.gmail || '', 120).toLowerCase(),
+        id: `cust_${cleanMobile || Date.now()}`,
+        fullName: cleanFullName || record.fullName || 'کاربر گرامی',
+        mobile: cleanMobile || record.mobile || '',
+        gmail: cleanEmail,
         createdAt: new Date().toISOString(),
       };
 
@@ -382,14 +554,21 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // ۴. دریافت لیست سفارشات (عمومی برای پیگیری، فیلتر شده یا کامل)
+    // ۴. دریافت لیست سفارشات (عمومی برای پیگیری یا لیست کامل برای ادمین)
     if (pathname === '/api/orders' && req.method === 'GET') {
       const mobile = url.searchParams.get('mobile');
+      const email = url.searchParams.get('email');
       const orderId = url.searchParams.get('orderId');
 
       if (orderId) {
         const found = db.orders.find((o) => o.id.toUpperCase() === orderId.toUpperCase());
         return sendJson(res, found ? 200 : 404, found || { error: 'Order not found' });
+      }
+
+      if (email) {
+        const cleanEmail = normalizeEmail(email);
+        const userOrders = db.orders.filter((o) => normalizeEmail(o.gmail) === cleanEmail);
+        return sendJson(res, 200, userOrders);
       }
 
       if (mobile) {
@@ -398,7 +577,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, userOrders);
       }
 
-      // در صورت درخواست لیست کامل سفارشات، دسترسی ادمین تأیید شود
+      // مشاهده کل سفارشات نیازمند دسترسی ادمین (چه head_admin چه regular_admin)
       if (!isAuthorizedAdmin(req)) {
         return sendJson(res, 401, { error: 'Unauthorized: Admin authentication required for full order list' });
       }
@@ -410,16 +589,16 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/orders' && req.method === 'POST') {
       const body = await parseRequestBody(req);
 
-      if (!body.fullName || !body.mobile) {
-        return sendJson(res, 400, { error: 'fullName and mobile are required' });
+      if (!body.fullName || !body.gmail) {
+        return sendJson(res, 400, { error: 'fullName and gmail are required' });
       }
 
       const newOrder = {
         id: `GP-${Math.floor(100000 + Math.random() * 900000)}`,
         createdAt: new Date().toISOString(),
         fullName: sanitizeText(body.fullName, 100),
-        mobile: normalizeMobile(body.mobile),
-        gmail: sanitizeText(body.gmail || '', 120).toLowerCase(),
+        mobile: normalizeMobile(body.mobile || ''),
+        gmail: normalizeEmail(body.gmail),
         productName: sanitizeText(body.productName || 'اشتراک ۱۸ ماهه Google AI Pro', 100),
         amountToman: Number(body.amountToman) || db.settings.priceToman || 499000,
         paymentMethod: body.paymentMethod === 'card_to_card' ? 'card_to_card' : 'bezanbekart',
@@ -432,7 +611,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 201, newOrder);
     }
 
-    // ۶. تغییر وضعیت یا ویرایش سفارش (فقط ادمین احراز هویت شده)
+    // ۶. تغییر وضعیت یا ویرایش سفارش (توسط هر ادمینی اعم از head_admin یا regular_admin)
     if (pathname.startsWith('/api/orders/') && req.method === 'PATCH') {
       if (!isAuthorizedAdmin(req)) {
         return sendJson(res, 401, { error: 'Unauthorized: Admin credentials required' });
@@ -465,7 +644,25 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, db.orders[idx]);
     }
 
-    // ۷. دریافت پیام‌های پشتیبانی آنلاین
+    // ۷. حذف سفارش
+    if (pathname.startsWith('/api/orders/') && req.method === 'DELETE') {
+      if (!isAuthorizedAdmin(req)) {
+        return sendJson(res, 401, { error: 'Unauthorized: Admin credentials required' });
+      }
+
+      const orderId = pathname.split('/').pop().toUpperCase();
+      const idx = db.orders.findIndex((o) => o.id.toUpperCase() === orderId);
+
+      if (idx === -1) {
+        return sendJson(res, 404, { error: 'Order not found' });
+      }
+
+      const deleted = db.orders.splice(idx, 1)[0];
+      saveDatabase(db);
+      return sendJson(res, 200, { success: true, deletedOrder: deleted });
+    }
+
+    // ۸. دریافت پیام‌های پشتیبانی آنلاین (فیلتر بر اساس sessionId یا کل پیام‌ها برای ادمین)
     if (pathname === '/api/chat/messages' && req.method === 'GET') {
       const sessionId = url.searchParams.get('sessionId');
       if (sessionId) {
@@ -480,7 +677,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, db.chatMessages);
     }
 
-    // ۸. ارسال پیام پشتیبانی
+    // ۹. ارسال پیام پشتیبانی
     if (pathname === '/api/chat/messages' && req.method === 'POST') {
       const body = await parseRequestBody(req);
       const text = sanitizeText(body.text || '', 1000);
@@ -502,48 +699,179 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 201, newMsg);
     }
 
-    // ۹. ورود امن ادمین با توکن‌های تصادفی
+    // ۱۰. ورود امن ادمین با نام کاربری، رمز عبور و نقش (RBAC Login)
     if (pathname === '/api/admin/login' && req.method === 'POST') {
       const body = await parseRequestBody(req);
-      if (verifyAdminPassword(body.password, db.settings.adminPassword)) {
+      const username = (body.username || 'admin').trim().toLowerCase();
+      const password = body.password || '';
+
+      const matchedAdmin = db.admins.find((a) => a.username.toLowerCase() === username);
+
+      if (matchedAdmin && verifyAdminPassword(password, matchedAdmin.passwordHash)) {
         const token = `adm_${crypto.randomBytes(24).toString('hex')}`;
-        activeAdminTokens.add(token);
+        const sessionData = {
+          id: matchedAdmin.id,
+          username: matchedAdmin.username,
+          fullName: matchedAdmin.fullName,
+          role: matchedAdmin.role || 'regular_admin',
+        };
+
+        activeAdminSessions.set(token, sessionData);
+
         return sendJson(res, 200, {
           success: true,
           token,
+          admin: sessionData,
           expiresIn: '24h',
         });
       }
-      return sendJson(res, 401, { success: false, error: 'رمز عبور مدیریت اشتباه است' });
+
+      // سازگاری پشتیبان برای پسورد کلی پیشین در صورتی که کاربر نام‌کاربری وارد نکرده باشد
+      if (username === 'admin' && verifyAdminPassword(password, db.settings.adminPassword)) {
+        const token = `adm_${crypto.randomBytes(24).toString('hex')}`;
+        const headAdmin = {
+          id: db.admins[0]?.id || 'adm_head_1',
+          username: db.admins[0]?.username || 'admin',
+          fullName: db.admins[0]?.fullName || 'مدیر ارشد فروشگاه',
+          role: 'head_admin',
+        };
+        activeAdminSessions.set(token, headAdmin);
+        return sendJson(res, 200, {
+          success: true,
+          token,
+          admin: headAdmin,
+          expiresIn: '24h',
+        });
+      }
+
+      return sendJson(res, 401, { success: false, error: 'نام کاربری یا رمز عبور اشتباه است.' });
     }
 
-    // ۱۰. دریافت و ذخیره تنظیمات سامانه پیامک و قیمت (فقط ادمین)
-    if (pathname === '/api/admin/settings') {
-      if (!isAuthorizedAdmin(req)) {
+    // ۱۱. دریافت اطلاعات هویت ادمین فعال
+    if (pathname === '/api/admin/me' && req.method === 'GET') {
+      const currentAdmin = getAuthenticatedAdmin(req);
+      if (!currentAdmin) {
         return sendJson(res, 401, { error: 'Unauthorized' });
+      }
+      return sendJson(res, 200, { success: true, admin: currentAdmin });
+    }
+
+    // ۱۲. مدیریت ادمین‌ها: دریافت لیست همکاران (فقط مدیر ارشد - head_admin)
+    if (pathname === '/api/admin/users' && req.method === 'GET') {
+      if (!isHeadAdmin(req)) {
+        return sendJson(res, 403, { error: 'Forbidden: تنها مدیر ارشد دسترسی به مدیریت ادمین‌ها دارد.' });
+      }
+
+      const safeAdmins = db.admins.map((a) => ({
+        id: a.id,
+        username: a.username,
+        fullName: a.fullName,
+        role: a.role,
+        createdAt: a.createdAt,
+      }));
+      return sendJson(res, 200, safeAdmins);
+    }
+
+    // ۱۳. مدیریت ادمین‌ها: تعریف ادمین جدید (فقط مدیر ارشد - head_admin)
+    if (pathname === '/api/admin/users' && req.method === 'POST') {
+      if (!isHeadAdmin(req)) {
+        return sendJson(res, 403, { error: 'Forbidden: تنها مدیر ارشد مجاز به تعریف ادمین جدید است.' });
+      }
+
+      const body = await parseRequestBody(req);
+      const cleanUsername = sanitizeText(body.username || '', 50).toLowerCase();
+      const cleanFullName = sanitizeText(body.fullName || '', 100);
+      const cleanPassword = body.password || '';
+      const role = body.role === 'head_admin' ? 'head_admin' : 'regular_admin';
+
+      if (!cleanUsername || cleanUsername.length < 3) {
+        return sendJson(res, 400, { error: 'نام کاربری باید حداقل ۳ کاراکتر باشد.' });
+      }
+      if (!cleanPassword || cleanPassword.length < 6) {
+        return sendJson(res, 400, { error: 'رمز عبور باید حداقل ۶ کاراکتر باشد.' });
+      }
+      if (db.admins.some((a) => a.username.toLowerCase() === cleanUsername)) {
+        return sendJson(res, 400, { error: 'این نام کاربری قبلاً ثبت شده است.' });
+      }
+
+      const newAdmin = {
+        id: `adm_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+        username: cleanUsername,
+        passwordHash: crypto.createHash('sha256').update(cleanPassword).digest('hex'),
+        fullName: cleanFullName || cleanUsername,
+        role,
+        createdAt: new Date().toISOString(),
+      };
+
+      db.admins.push(newAdmin);
+      saveDatabase(db);
+
+      return sendJson(res, 201, {
+        success: true,
+        admin: {
+          id: newAdmin.id,
+          username: newAdmin.username,
+          fullName: newAdmin.fullName,
+          role: newAdmin.role,
+          createdAt: newAdmin.createdAt,
+        },
+      });
+    }
+
+    // ۱۴. مدیریت ادمین‌ها: حذف ادمین (فقط مدیر ارشد - head_admin)
+    if (pathname.startsWith('/api/admin/users/') && req.method === 'DELETE') {
+      if (!isHeadAdmin(req)) {
+        return sendJson(res, 403, { error: 'Forbidden: تنها مدیر ارشد مجاز به حذف ادمین است.' });
+      }
+
+      const targetId = pathname.split('/').pop();
+      const currentAdmin = getAuthenticatedAdmin(req);
+
+      if (targetId === currentAdmin.id) {
+        return sendJson(res, 400, { error: 'امکان حذف حساب کاربری جاری خودتان وجود ندارد.' });
+      }
+
+      const idx = db.admins.findIndex((a) => a.id === targetId);
+      if (idx === -1) {
+        return sendJson(res, 404, { error: 'ادمین مورد نظر یافت نشد.' });
+      }
+
+      db.admins.splice(idx, 1);
+      saveDatabase(db);
+      return sendJson(res, 200, { success: true, message: 'ادمین با موفقیت حذف گردید.' });
+    }
+
+    // ۱۵. تنظیمات سرور و درگاه ایمیل (فقط مدیر ارشد - head_admin)
+    if (pathname === '/api/admin/settings') {
+      if (!isHeadAdmin(req)) {
+        return sendJson(res, 403, { error: 'Forbidden: تنظیمات پیکربندی تنها برای مدیر ارشد قابل ویرایش است.' });
       }
 
       if (req.method === 'GET') {
         const safeSettings = {
           priceToman: db.settings.priceToman,
-          smsApiKey: db.settings.smsApiKey ? '••••••••' + db.settings.smsApiKey.slice(-4) : '',
-          smsTemplateId: db.settings.smsTemplateId || '',
-          smsParamName: db.settings.smsParamName || 'Code',
-          isSmsConfigured: Boolean(db.settings.smsApiKey && db.settings.smsTemplateId),
+          smtpHost: db.settings.smtpHost || 'smtp.gmail.com',
+          smtpPort: db.settings.smtpPort || 465,
+          smtpUser: db.settings.smtpUser ? '••••@' + db.settings.smtpUser.split('@')[1] || 'gmail.com' : '',
+          hasSmtpPass: Boolean(db.settings.smtpPass),
+          isSmtpConfigured: Boolean(db.settings.smtpUser && db.settings.smtpPass),
         };
         return sendJson(res, 200, safeSettings);
       }
 
       if (req.method === 'PATCH') {
         const body = await parseRequestBody(req);
-        if (body.smsApiKey && !body.smsApiKey.includes('••••')) {
-          db.settings.smsApiKey = sanitizeText(body.smsApiKey, 200);
+        if (body.smtpUser && !body.smtpUser.includes('••••')) {
+          db.settings.smtpUser = sanitizeText(body.smtpUser, 150);
         }
-        if (body.smsTemplateId) {
-          db.settings.smsTemplateId = sanitizeText(body.smsTemplateId, 50);
+        if (body.smtpPass) {
+          db.settings.smtpPass = String(body.smtpPass).trim();
         }
-        if (body.smsParamName) {
-          db.settings.smsParamName = sanitizeText(body.smsParamName, 50);
+        if (body.smtpHost) {
+          db.settings.smtpHost = sanitizeText(body.smtpHost, 100);
+        }
+        if (body.smtpPort) {
+          db.settings.smtpPort = Number(body.smtpPort) || 465;
         }
         if (body.priceToman && Number(body.priceToman) > 0) {
           db.settings.priceToman = Number(body.priceToman);
@@ -562,5 +890,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🛡️  Secure Gemini Shop Backend with SMS OTP running on http://localhost:${PORT}`);
+  console.log(`🛡️  Secure Gemini Shop Backend running on http://localhost:${PORT}`);
+  console.log(`✉️  Email OTP Engine: Ready via TLS Port 465`);
+  console.log(`👥 Multi-Tier RBAC Admin System: Initialized`);
 });

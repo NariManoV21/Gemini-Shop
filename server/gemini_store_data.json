@@ -3,6 +3,28 @@
   "chatMessages": [],
   "settings": {
     "adminPassword": "admin123",
-    "priceToman": 499000
-  }
+    "priceToman": 499000,
+    "smtpHost": "smtp.gmail.com",
+    "smtpPort": 465,
+    "smtpUser": "",
+    "smtpPass": ""
+  },
+  "admins": [
+    {
+      "id": "adm_head_1",
+      "username": "admin",
+      "passwordHash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa82280f1a7cae866",
+      "fullName": "نریمان موذنی (مدیر ارشد)",
+      "role": "head_admin",
+      "createdAt": "2026-10-16T10:00:00.000Z"
+    },
+    {
+      "id": "adm_1792158141061_5dce8f",
+      "username": "sales_ali",
+      "passwordHash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "fullName": "علی رضایی (ادمین فروش)",
+      "role": "regular_admin",
+      "createdAt": "2026-10-16T13:42:21.061Z"
+    }
+  ]
 }

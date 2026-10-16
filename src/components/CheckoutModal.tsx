@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Product } from '../config/site';
 import { PAYMENT_CONFIG, SUPPORT } from '../config/site';
 import { formatToman } from '../lib/format';
-import { getCurrentUser, loginOrRegisterCustomer, requestSmsOtp, verifySmsOtp } from '../services/authService';
+import { getCurrentUser, loginOrRegisterCustomer, requestEmailOtp, verifyEmailOtp } from '../services/authService';
 import { createStoreOrder, type StoreOrder } from '../services/orderStorage';
 import { Icon } from './Icon';
 import './CheckoutModal.css';
@@ -87,13 +87,13 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
     if (fullName.trim().length < 3) {
       errs.fullName = 'لطفاً نام و نام خانوادگی خود را کامل وارد کنید.';
     }
-    const cleanMobile = normalizeDigits(mobile.trim());
-    if (!/^09\d{9}$/.test(cleanMobile)) {
-      errs.mobile = 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹).';
-    }
     const cleanGmail = gmail.trim().toLowerCase();
     if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(cleanGmail)) {
       errs.gmail = 'ایمیل باید یک حساب معتبر گوگل باشد (حتماً به gmail.com@ ختم شود).';
+    }
+    const cleanMobile = normalizeDigits(mobile.trim());
+    if (!/^09\d{9}$/.test(cleanMobile)) {
+      errs.mobile = 'شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود (مانند ۰۹۱۲۳۴۵۶۷۸۹).';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -103,19 +103,20 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
     e.preventDefault();
     if (!validateStep1()) return;
 
+    const cleanGmail = gmail.trim().toLowerCase();
     const cleanMobile = normalizeDigits(mobile.trim());
     const currentUser = getCurrentUser();
 
-    // اگر کاربر از قبل با همین شماره لاگین کرده است، مستقیم به پرداخت برود
-    if (currentUser && currentUser.mobile === cleanMobile) {
+    // اگر کاربر از قبل با همین ایمیل لاگین کرده است، مستقیم به پرداخت برود
+    if (currentUser && currentUser.gmail === cleanGmail) {
       setStep(2);
       return;
     }
 
-    // ارسال کد تأیید یکبارمصرف پیامکی
+    // ارسال کد تأیید یکبارمصرف ایمیلی به جیمیل
     setLoadingOtp(true);
     setOtpError(null);
-    const res = await requestSmsOtp(cleanMobile);
+    const res = await requestEmailOtp(cleanGmail, fullName.trim(), cleanMobile);
     setLoadingOtp(false);
 
     if (res.success) {
@@ -123,22 +124,23 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
       setOtpTimer(res.cooldownSeconds || 60);
       if (res.simulationCode) setSimCode(res.simulationCode);
     } else {
-      setErrors({ mobile: res.error || 'خطا در ارسال پیامک کد تأیید.' });
+      setErrors({ gmail: res.error || 'خطا در ارسال کد تأیید ایمیلی.' });
     }
   };
 
   const handleVerifyCheckoutOtp = async () => {
+    const cleanGmail = gmail.trim().toLowerCase();
     const cleanMobile = normalizeDigits(mobile.trim());
     const cleanCode = otpInput.trim().replace(/\D/g, '');
 
     if (cleanCode.length < 4) {
-      setOtpError('لطفاً کد ۵ رقمی ارسال‌شده را به طور کامل وارد نمایید.');
+      setOtpError('لطفاً کد ۵ رقمی ارسال‌شده به ایمیل را به طور کامل وارد نمایید.');
       return;
     }
 
     setLoadingOtp(true);
     setOtpError(null);
-    const res = await verifySmsOtp(cleanMobile, cleanCode, fullName, gmail);
+    const res = await verifyEmailOtp(cleanGmail, cleanCode, fullName.trim(), cleanMobile);
     setLoadingOtp(false);
 
     if (res.success) {
@@ -151,16 +153,17 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
 
   const handleResendCheckoutOtp = async () => {
     if (otpTimer > 0 || loadingOtp) return;
+    const cleanGmail = gmail.trim().toLowerCase();
     const cleanMobile = normalizeDigits(mobile.trim());
     setLoadingOtp(true);
     setOtpError(null);
-    const res = await requestSmsOtp(cleanMobile);
+    const res = await requestEmailOtp(cleanGmail, fullName.trim(), cleanMobile);
     setLoadingOtp(false);
     if (res.success) {
       setOtpTimer(res.cooldownSeconds || 60);
       if (res.simulationCode) setSimCode(res.simulationCode);
     } else {
-      setOtpError(res.error || 'خطا در ارسال مجدد کد پیامکی.');
+      setOtpError(res.error || 'خطا در ارسال مجدد کد تأیید.');
     }
   };
 
@@ -280,8 +283,8 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                     <Icon name="shield" size={20} />
                   </div>
                   <div>
-                    <strong>تأیید شماره موبایل خریدار</strong>
-                    <p>کد ۵ رقمی ارسال‌شده به شماره <b>{mobile}</b> را وارد فرمایید:</p>
+                    <strong>تأیید آدرس ایمیل خریدار</strong>
+                    <p>کد ۵ رقمی ارسال‌شده به ایمیل <b>{gmail}</b> را وارد فرمایید:</p>
                   </div>
                 </div>
 
@@ -317,11 +320,11 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                     </span>
                   ) : (
                     <button type="button" className="auth-card__resend-btn" onClick={handleResendCheckoutOtp} disabled={loadingOtp}>
-                      ارسال مجدد پیامک
+                      ارسال مجدد ایمیل کد
                     </button>
                   )}
                   <button type="button" className="auth-card__edit-btn" onClick={() => setOtpPending(false)}>
-                    ویرایش شماره موبایل
+                    ویرایش مشخصات
                   </button>
                 </div>
 
@@ -335,7 +338,7 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                     onClick={handleVerifyCheckoutOtp}
                     disabled={loadingOtp}
                   >
-                    <span>{loadingOtp ? 'در حال بررسی کد...' : 'تأیید شماره و رفتن به پرداخت'}</span>
+                    <span>{loadingOtp ? 'در حال بررسی کد...' : 'تأیید ایمیل و رفتن به پرداخت'}</span>
                     <Icon name="arrow" size={18} />
                   </button>
                 </div>
@@ -356,20 +359,6 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                 </label>
 
                 <label className="field">
-                  <span>شماره موبایل (جهت دریافت پیامک تایید و رهگیری)</span>
-                  <input
-                    value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
-                    placeholder="۰۹۱۲۳۴۵۶۷۸۹"
-                    inputMode="numeric"
-                    dir="ltr"
-                    autoComplete="tel"
-                    aria-invalid={!!errors.mobile}
-                  />
-                  {errors.mobile && <em role="alert">{errors.mobile}</em>}
-                </label>
-
-                <label className="field">
                   <span>ایمیل شخصی جیمیل (بدون نیاز به رمز عبور)</span>
                   <input
                     value={gmail}
@@ -384,13 +373,27 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                     <em role="alert">{errors.gmail}</em>
                   ) : (
                     <span className="field__hint">
-                      🔒 اشتراک مستقیماً روی همین ایمیل فعال می‌شود و هیچ‌گونه پسوردی از شما دریافت نمی‌گردد
+                      🔒 کد تایید و لینک فعال‌سازی اختصاصی مستقیماً به همین ایمیل ارسال خواهد شد
                     </span>
                   )}
                 </label>
 
+                <label className="field">
+                  <span>شماره تماس همراه (جهت هماهنگی و پشتیبانی)</span>
+                  <input
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                    placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                    inputMode="numeric"
+                    dir="ltr"
+                    autoComplete="tel"
+                    aria-invalid={!!errors.mobile}
+                  />
+                  {errors.mobile && <em role="alert">{errors.mobile}</em>}
+                </label>
+
                 <button className="btn modal__submit" type="submit" disabled={loadingOtp}>
-                  <span>{loadingOtp ? 'در حال ارسال کد تایید...' : 'ادامه و دریافت کد تایید پیامکی'}</span>
+                  <span>{loadingOtp ? 'در حال ارسال کد تایید...' : 'ادامه و دریافت کد تایید ایمیلی'}</span>
                   <Icon name="arrow" size={18} />
                 </button>
               </form>
@@ -561,9 +564,7 @@ export function CheckoutModal({ product, open, onClose, onTrackOrder, onOpenProf
                 <span className="locked-time">تخمین تحویل: ۲ الی ۴۸ ساعت</span>
               </div>
               <p className="locked-link-box__text">
-                به محض اینکه واریزی شما از طرف پشتیبانی فروشگاه تأیید شود، لینک فعال‌سازی اختصاصی گوگل در همین بخش و
-                همچنین در صفحه <b>«پیگیری سفارش»</b> باز خواهد شد و به ایمیل شخصی <b>{createdOrder.gmail}</b> ارسال
-                می‌گردد
+                به محض اینکه واریزی شما از طرف پشتیبانی فروشگاه تأیید شود، لینک فعال‌سازی اختصاصی گوگل در بخش <b>«پنل کاربری»</b>، <b>«پیگیری سفارش»</b> و همچنین در گفتگوی چت آنلاین پشتیبانی تحویل داده خواهد شد و به ایمیل شخصی <b>{createdOrder.gmail}</b> نیز ارسال می‌گردد.
               </p>
             </div>
 

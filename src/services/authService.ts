@@ -1,9 +1,9 @@
 /**
- * سرویس مدیریت پروفایل و احراز هویت خریداران فروشگاه Gemini Pro
- * ذخیره‌سازی امن مشخصات مشتری، ارتباط با وب‌سرویس پیامکی sms.ir جهت ارسال و اعتبارسنجی OTP
+ * سرویس مدیریت پروفایل و احراز هویت خریداران فروشگاه Gemini Shop
+ * ارتباط با وب‌سرویس جهت ارسال و اعتبارسنجی کد ۵ رقمی تأیید یکبارمصرف ایمیل (Gmail OTP)
  */
 
-import { sanitizeInput, sanitizeMobile, sanitizeEmail, isValidIranianMobile } from '../lib/sanitize';
+import { sanitizeInput, sanitizeMobile, sanitizeEmail } from '../lib/sanitize';
 import { getStoredOrders, type StoreOrder } from './orderStorage';
 
 export interface UserProfile {
@@ -18,7 +18,7 @@ const AUTH_STORAGE_KEY = 'gemini_customer_profile_v1';
 const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
 
 /**
- * دریافت مشخصات مشتری جاری
+ * دریافت مشخصات مشتری جاری از حافظه محلی
  */
 export function getCurrentUser(): UserProfile | null {
   try {
@@ -32,7 +32,7 @@ export function getCurrentUser(): UserProfile | null {
 }
 
 /**
- * ذخیره مشخصات کاربر در حافظه محلی و انتشار تغییرات
+ * ذخیره مشخصات کاربر در حافظه محلی و انتشار تغییرات در سراسر کامپوننت‌ها
  */
 export function saveCurrentUser(user: UserProfile) {
   try {
@@ -44,32 +44,40 @@ export function saveCurrentUser(user: UserProfile) {
 }
 
 /**
- * درخواست ارسال کد تأیید یکبار مصرف پیامکی (OTP)
+ * درخواست ارسال کد تأیید یکبار مصرف ایمیلی (Email / Gmail OTP)
  */
-export async function requestSmsOtp(mobile: string): Promise<{
+export async function requestEmailOtp(
+  email: string,
+  fullName?: string,
+  mobile?: string
+): Promise<{
   success: boolean;
   message: string;
   cooldownSeconds?: number;
   simulationCode?: string;
   error?: string;
 }> {
-  const cleanMobile = sanitizeMobile(mobile);
-  if (!isValidIranianMobile(cleanMobile)) {
-    return { success: false, message: '', error: 'شماره موبایل وارد شده باید ۱۱ رقم و با ۰۹ شروع شود.' };
+  const cleanEmail = sanitizeEmail(email);
+  if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    return { success: false, message: '', error: 'لطفاً یک آدرس ایمیل معتبر (مثلاً yourname@gmail.com) وارد فرمایید.' };
   }
 
   try {
     const res = await fetch(`${API_BASE}/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mobile: cleanMobile }),
+      body: JSON.stringify({
+        email: cleanEmail,
+        fullName: sanitizeInput(fullName || ''),
+        mobile: sanitizeMobile(mobile || ''),
+      }),
     });
 
     const data = await res.json();
     if (res.ok && data.success) {
       return {
         success: true,
-        message: data.message || 'کد تایید پیامکی ارسال شد.',
+        message: data.message || 'کد تأیید به ایمیل شما ارسال شد.',
         cooldownSeconds: data.cooldownSeconds || 60,
         simulationCode: data.simulationCode,
       };
@@ -77,17 +85,17 @@ export async function requestSmsOtp(mobile: string): Promise<{
     return {
       success: false,
       message: '',
-      error: data.error || 'خطا در ارسال کد تایید پیامکی. لطفاً مجدداً تلاش کنید.',
+      error: data.error || 'خطا در ارسال کد تأیید ایمیلی. لطفاً مجدداً تلاش کنید.',
       cooldownSeconds: data.remainingSeconds,
     };
   } catch (err) {
     console.warn('Backend unavailable for OTP, using offline simulation fallback:', err);
-    // در صورت عدم دسترسی به سرور (مثلاً هاست استاتیک بدون بک‌اند)، شبیه‌سازی محلی
+    // در صورت میزبانی استاتیک روی GitHub Pages بدون سرور مجزا، شبیه‌ساز محلی کد را تولید می‌کند
     const fallbackCode = '12345';
-    sessionStorage.setItem(`offline_otp_${cleanMobile}`, fallbackCode);
+    sessionStorage.setItem(`offline_otp_${cleanEmail}`, fallbackCode);
     return {
       success: true,
-      message: 'کد تایید پیامکی ارسال شد (حالت آفلاین دمو: ۱۲۳۴۵).',
+      message: 'کد تایید ایمیلی ارسال شد (کد تستی شبیه‌ساز: ۱۲۳۴۵).',
       cooldownSeconds: 60,
       simulationCode: fallbackCode,
     };
@@ -95,20 +103,20 @@ export async function requestSmsOtp(mobile: string): Promise<{
 }
 
 /**
- * بررسی صحت کد تایید پیامکی و ورود کاربر
+ * بررسی صحت کد تأیید ایمیل و ورود رسمی خریدار
  */
-export async function verifySmsOtp(
-  mobile: string,
+export async function verifyEmailOtp(
+  email: string,
   code: string,
   fullName?: string,
-  gmail?: string
+  mobile?: string
 ): Promise<{
   success: boolean;
   user?: UserProfile;
   message?: string;
   error?: string;
 }> {
-  const cleanMobile = sanitizeMobile(mobile);
+  const cleanEmail = sanitizeEmail(email);
   const cleanCode = sanitizeInput(code).replace(/\D/g, '');
 
   try {
@@ -116,10 +124,10 @@ export async function verifySmsOtp(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        mobile: cleanMobile,
+        email: cleanEmail,
         code: cleanCode,
         fullName: sanitizeInput(fullName || ''),
-        gmail: sanitizeEmail(gmail || ''),
+        mobile: sanitizeMobile(mobile || ''),
       }),
     });
 
@@ -129,17 +137,17 @@ export async function verifySmsOtp(
       saveCurrentUser(user);
       return { success: true, user, message: data.message };
     }
-    return { success: false, error: data.error || 'کد وارد شده صحیح نمی‌باشد.' };
+    return { success: false, error: data.error || 'کد تایید وارد شده نادرست است.' };
   } catch (err) {
     console.warn('Backend unavailable, validating against offline simulation:', err);
-    const saved = sessionStorage.getItem(`offline_otp_${cleanMobile}`);
-    if (saved && saved === cleanCode) {
-      sessionStorage.removeItem(`offline_otp_${cleanMobile}`);
+    const saved = sessionStorage.getItem(`offline_otp_${cleanEmail}`);
+    if (cleanCode === '12345' || (saved && saved === cleanCode)) {
+      sessionStorage.removeItem(`offline_otp_${cleanEmail}`);
       const user: UserProfile = {
-        id: `cust_${cleanMobile}`,
+        id: `cust_${sanitizeMobile(mobile || '') || Date.now()}`,
         fullName: sanitizeInput(fullName || 'کاربر گرامی'),
-        mobile: cleanMobile,
-        gmail: sanitizeEmail(gmail || ''),
+        mobile: sanitizeMobile(mobile || ''),
+        gmail: cleanEmail,
         createdAt: new Date().toISOString(),
       };
       saveCurrentUser(user);
@@ -150,19 +158,19 @@ export async function verifySmsOtp(
 }
 
 /**
- * ورود یا ایجاد مستقیم پروفایل کاربری با نام و شماره موبایل
+ * ورود یا ایجاد مستقیم پروفایل کاربری با نام، ایمیل و شماره موبایل
  */
 export function loginOrRegisterCustomer(data: {
   fullName: string;
-  mobile: string;
-  gmail?: string;
+  gmail: string;
+  mobile?: string;
 }): UserProfile {
   const cleanName = sanitizeInput(data.fullName);
-  const cleanMobile = sanitizeMobile(data.mobile);
-  const cleanGmail = sanitizeEmail(data.gmail || '');
+  const cleanGmail = sanitizeEmail(data.gmail);
+  const cleanMobile = sanitizeMobile(data.mobile || '');
 
   const user: UserProfile = {
-    id: `cust_${cleanMobile}`,
+    id: `cust_${cleanMobile || Date.now()}`,
     fullName: cleanName,
     mobile: cleanMobile,
     gmail: cleanGmail,
@@ -182,14 +190,22 @@ export function logoutCustomer() {
 }
 
 /**
- * دریافت سابقه سفارشات متعلق به شماره موبایل کاربر جاری
+ * دریافت سابقه سفارشات متعلق به مشتری جاری (بر اساس ایمیل یا شماره موبایل)
  */
-export function getCustomerOrders(mobile: string): StoreOrder[] {
-  const cleanMobile = sanitizeMobile(mobile);
-  if (!cleanMobile) return [];
+export function getCustomerOrders(identifier: string): StoreOrder[] {
+  if (!identifier) return [];
+  const cleanEmail = sanitizeEmail(identifier);
+  const cleanMobile = sanitizeMobile(identifier);
 
   const allOrders = getStoredOrders();
   return allOrders.filter(
-    (o) => sanitizeMobile(o.mobile) === cleanMobile
+    (o) =>
+      (cleanEmail && sanitizeEmail(o.gmail) === cleanEmail) ||
+      (cleanMobile && sanitizeMobile(o.mobile) === cleanMobile)
   );
 }
+
+// توابع سازگاری گذشته (Backwards Compatibility)
+export const requestSmsOtp = (mobileOrEmail: string) => requestEmailOtp(mobileOrEmail);
+export const verifySmsOtp = (mobileOrEmail: string, code: string, fullName?: string, gmail?: string) =>
+  verifyEmailOtp(gmail || mobileOrEmail, code, fullName, mobileOrEmail);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PAYMENT_CONFIG, SUPPORT } from '../config/site';
+import { PAYMENT_CONFIG } from '../config/site';
 import { formatToman } from '../lib/format';
 import {
   type ChatMessage,
@@ -22,21 +22,41 @@ interface Props {
   onClose: () => void;
 }
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  fullName: string;
+  role: 'head_admin' | 'regular_admin';
+  createdAt?: string;
+}
+
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
+
 export function AdminPanel({ open, onClose }: Props) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
+  const [adminToken, setAdminToken] = useState<string>('gemini_admin_session_token');
+
+  // فرم ورود
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'chat' | 'settings'>('dashboard');
+  // تب فعال
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'chat' | 'admins' | 'settings'>('dashboard');
 
+  // سفارشات
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'today' | 'pending_verification' | 'approved' | 'rejected'>('all');
 
+  // چت
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [adminReplyInput, setAdminReplyInput] = useState('');
 
+  // مدال تأیید سفارش
   const [approveModalOrder, setApproveModalOrder] = useState<StoreOrder | null>(null);
   const [customLinkInput, setCustomLinkInput] = useState('');
   const [adminNoteInput, setAdminNoteInput] = useState('');
@@ -44,65 +64,139 @@ export function AdminPanel({ open, onClose }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedDeliveryMsg, setCopiedDeliveryMsg] = useState<string | null>(null);
 
-  // تنظیمات وب‌سرویس پیامکی sms.ir
-  const [smsApiKey, setSmsApiKey] = useState('');
-  const [smsTemplateId, setSmsTemplateId] = useState('');
-  const [smsParamName, setSmsParamName] = useState('Code');
-  const [smsConfigured, setSmsConfigured] = useState(false);
-  const [smsSavedToast, setSmsSavedToast] = useState(false);
+  // لیست ادمین‌ها (فقط برای head_admin)
+  const [adminsList, setAdminsList] = useState<AdminUser[]>([]);
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminFullName, setNewAdminFullName] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<'regular_admin' | 'head_admin'>('regular_admin');
+  const [addAdminError, setAddAdminError] = useState<string | null>(null);
+  const [addAdminLoading, setAddAdminLoading] = useState(false);
 
-  // بررسی وضعیت لاگین قبلی از sessionStorage
+  // تنظیمات Gmail SMTP
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState(465);
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
+  const [smtpSavedToast, setSmtpSavedToast] = useState(false);
+
+  // بررسی نشست لاگین قبلی از sessionStorage
   useEffect(() => {
-    if (sessionStorage.getItem('gemini_admin_auth') === 'true') {
+    const savedAuth = sessionStorage.getItem('gemini_admin_auth') === 'true';
+    const savedToken = sessionStorage.getItem('gemini_admin_token') || 'gemini_admin_session_token';
+    const savedUserRaw = sessionStorage.getItem('gemini_admin_user');
+
+    if (savedAuth) {
       setIsAuthenticated(true);
+      setAdminToken(savedToken);
+      if (savedUserRaw) {
+        try {
+          setCurrentAdmin(JSON.parse(savedUserRaw));
+        } catch {
+          setCurrentAdmin({
+            id: 'adm_head_1',
+            username: 'admin',
+            fullName: 'نریمان موذنی (مدیر ارشد)',
+            role: 'head_admin',
+          });
+        }
+      }
     }
   }, []);
 
-  // واکشی تنظیمات پیامک از سرور
+  // محافظت از تب‌های اختصاصی: اگر ادمین عادی باشد، دسترسی به تنظیمات و ادمین‌ها نداشته باشد
   useEffect(() => {
-    if (open && isAuthenticated) {
-      fetch('http://localhost:3001/api/admin/settings', {
-        headers: { Authorization: 'Bearer gemini_admin_session_token' },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) {
-            if (data.smsApiKey) setSmsApiKey(data.smsApiKey);
-            if (data.smsTemplateId) setSmsTemplateId(data.smsTemplateId);
-            if (data.smsParamName) setSmsParamName(data.smsParamName);
-            setSmsConfigured(Boolean(data.isSmsConfigured));
-          }
-        })
-        .catch(() => {});
+    if (currentAdmin && currentAdmin.role !== 'head_admin') {
+      if (activeTab === 'admins' || activeTab === 'settings') {
+        setActiveTab('dashboard');
+      }
     }
-  }, [open, isAuthenticated]);
+  }, [currentAdmin, activeTab]);
 
-  const handleSaveSmsSettings = async (e: React.FormEvent) => {
+  // بارگذاری لیست ادمین‌ها برای head_admin
+  const loadAdminsList = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminsList(data);
+      }
+    } catch {
+      // در حالت آفلاین
+      const localAdmins = localStorage.getItem('gemini_local_admins');
+      if (localAdmins) {
+        try {
+          setAdminsList(JSON.parse(localAdmins));
+        } catch {}
+      } else {
+        setAdminsList([
+          {
+            id: 'adm_head_1',
+            username: 'admin',
+            fullName: 'نریمان موذنی (مدیر ارشد)',
+            role: 'head_admin',
+          },
+        ]);
+      }
+    }
+  };
+
+  // واکشی تنظیمات جیمیل SMTP از سرور
+  const loadSettings = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/settings`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          if (data.smtpUser) setSmtpUser(data.smtpUser);
+          if (data.smtpHost) setSmtpHost(data.smtpHost);
+          if (data.smtpPort) setSmtpPort(data.smtpPort);
+          setSmtpConfigured(Boolean(data.isSmtpConfigured));
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (open && isAuthenticated && currentAdmin?.role === 'head_admin') {
+      loadSettings();
+      loadAdminsList();
+    }
+  }, [open, isAuthenticated, currentAdmin]);
+
+  const handleSaveSmtpSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3001/api/admin/settings', {
+      const res = await fetch(`${API_BASE}/admin/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: 'Bearer gemini_admin_session_token',
+          Authorization: `Bearer ${adminToken}`,
         },
         body: JSON.stringify({
-          smsApiKey,
-          smsTemplateId,
-          smsParamName,
+          smtpUser,
+          smtpPass,
+          smtpHost,
+          smtpPort,
         }),
       });
       if (res.ok) {
-        setSmsConfigured(Boolean(smsApiKey && smsTemplateId));
-        setSmsSavedToast(true);
-        setTimeout(() => setSmsSavedToast(false), 2500);
+        setSmtpConfigured(Boolean(smtpUser && smtpPass));
+        setSmtpSavedToast(true);
+        setTimeout(() => setSmtpSavedToast(false), 2500);
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // بارگذاری داده‌ها
+  // بارگذاری داده‌های سفارشات و چت
   useEffect(() => {
     if (!open) return;
 
@@ -127,21 +221,149 @@ export function AdminPanel({ open, onClose }: Props) {
 
   if (!open) return null;
 
-  // ورود به پنل
-  const handleLogin = (e: React.FormEvent) => {
+  // ورود به پنل ادمین
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin123' || password === 'admin') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('gemini_admin_auth', 'true');
-      setLoginError(false);
-    } else {
-      setLoginError(true);
+    setLoginError(null);
+    setLoginLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+      });
+
+      const data = await res.json();
+      setLoginLoading(false);
+
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        setCurrentAdmin(data.admin);
+        setAdminToken(data.token);
+        sessionStorage.setItem('gemini_admin_auth', 'true');
+        sessionStorage.setItem('gemini_admin_token', data.token);
+        sessionStorage.setItem('gemini_admin_user', JSON.stringify(data.admin));
+        return;
+      }
+
+      setLoginError(data.error || 'نام کاربری یا رمز عبور اشتباه است.');
+    } catch {
+      setLoginLoading(false);
+      // حالت دمو / بدون بک‌اند آفلاین
+      if (password === 'admin123' || password === 'admin') {
+        const adminObj: AdminUser = {
+          id: 'adm_head_1',
+          username: username || 'admin',
+          fullName: 'نریمان موذنی (مدیر ارشد)',
+          role: 'head_admin',
+        };
+        setIsAuthenticated(true);
+        setCurrentAdmin(adminObj);
+        sessionStorage.setItem('gemini_admin_auth', 'true');
+        sessionStorage.setItem('gemini_admin_user', JSON.stringify(adminObj));
+      } else if (password === 'staff123') {
+        const staffObj: AdminUser = {
+          id: 'adm_reg_1',
+          username: username || 'staff',
+          fullName: 'ادمین فروش و سفارشات',
+          role: 'regular_admin',
+        };
+        setIsAuthenticated(true);
+        setCurrentAdmin(staffObj);
+        sessionStorage.setItem('gemini_admin_auth', 'true');
+        sessionStorage.setItem('gemini_admin_user', JSON.stringify(staffObj));
+      } else {
+        setLoginError('رمز عبور صحیح نمی‌باشد (رمز پیش‌فرض مدیر ارشد: admin123)');
+      }
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    setCurrentAdmin(null);
     sessionStorage.removeItem('gemini_admin_auth');
+    sessionStorage.removeItem('gemini_admin_token');
+    sessionStorage.removeItem('gemini_admin_user');
+  };
+
+  // افزودن ادمین جدید توسط head_admin
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddAdminError(null);
+    setAddAdminLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          username: newAdminUsername.trim(),
+          fullName: newAdminFullName.trim(),
+          password: newAdminPassword,
+          role: newAdminRole,
+        }),
+      });
+
+      const data = await res.json();
+      setAddAdminLoading(false);
+
+      if (res.ok && data.success) {
+        setShowAddAdminModal(false);
+        setNewAdminUsername('');
+        setNewAdminFullName('');
+        setNewAdminPassword('');
+        loadAdminsList();
+        return;
+      }
+
+      setAddAdminError(data.error || 'خطا در ثبت ادمین جدید.');
+    } catch {
+      setAddAdminLoading(false);
+      // ذخیره آفلاین دمو
+      const newAdm: AdminUser = {
+        id: `adm_${Date.now()}`,
+        username: newAdminUsername.trim(),
+        fullName: newAdminFullName.trim() || newAdminUsername,
+        role: newAdminRole,
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [...adminsList, newAdm];
+      setAdminsList(updated);
+      localStorage.setItem('gemini_local_admins', JSON.stringify(updated));
+      setShowAddAdminModal(false);
+      setNewAdminUsername('');
+      setNewAdminFullName('');
+      setNewAdminPassword('');
+    }
+  };
+
+  // حذف ادمین توسط head_admin
+  const handleDeleteAdmin = async (adminId: string, adminName: string) => {
+    if (!confirm(`آیا از حذف دسترسی ادمین «${adminName}» اطمینان دارید؟`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${adminId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+      if (res.ok) {
+        loadAdminsList();
+        return;
+      }
+      const data = await res.json();
+      alert(data.error || 'خطا در حذف ادمین.');
+    } catch {
+      const updated = adminsList.filter((a) => a.id !== adminId);
+      setAdminsList(updated);
+      localStorage.setItem('gemini_local_admins', JSON.stringify(updated));
+    }
   };
 
   // محاسبات آمار کاربردی داشبورد
@@ -150,7 +372,6 @@ export function AdminPanel({ open, onClose }: Props) {
   const approvedOrders = orders.filter((o) => o.status === 'approved');
   const rejectedOrders = orders.filter((o) => o.status === 'rejected');
 
-  // سفارشات امروز
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayOrders = orders.filter((o) => o.createdAt.slice(0, 10) === todayStr);
   const todayRevenue = todayOrders.filter((o) => o.status === 'approved').reduce((sum, o) => sum + o.amountToman, 0);
@@ -179,7 +400,7 @@ export function AdminPanel({ open, onClose }: Props) {
     }
 
     const q = searchQuery.trim().toLowerCase();
-    const cleanQ = q.replace(/^0+/, ''); // پشتیبانی از جستجوی شماره بدون صفر
+    const cleanQ = q.replace(/^0+/, '');
     const matchesQuery =
       !q ||
       o.id.toLowerCase().includes(q) ||
@@ -218,7 +439,7 @@ export function AdminPanel({ open, onClose }: Props) {
     }
   };
 
-  // کپی سریع متن پیامک / تلگرام آماده تحویل لایسنس به مشتری
+  // کپی سریع متن تلگرام / ایمیل آماده تحویل لایسنس به مشتری
   const copyCustomerDeliveryText = (order: StoreOrder) => {
     const link = order.activationLink || `https://one.google.com/promo/google-ai-pro-invite?order=${order.id}&account=${encodeURIComponent(order.gmail)}`;
     const text = `سلام ${order.fullName} گرامی،\nاشتراک ۱۸ ماهه Google AI Pro شما با موفقیت فعال شد.\n\nکد سفارش: ${order.id}\nلینک فعال‌سازی رسمی گوگل:\n${link}\n\nپشتیبانی Gemini Shop`;
@@ -227,7 +448,6 @@ export function AdminPanel({ open, onClose }: Props) {
     setTimeout(() => setCopiedDeliveryMsg(null), 2000);
   };
 
-  // کپی ساده متن
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -270,7 +490,7 @@ export function AdminPanel({ open, onClose }: Props) {
     document.body.removeChild(link);
   };
 
-  // فرم ورود تمیز بدون افکت‌های شلوغ
+  // فرم ورود به پنل
   if (!isAuthenticated) {
     return (
       <div className="admin-overlay" dir="rtl">
@@ -280,10 +500,23 @@ export function AdminPanel({ open, onClose }: Props) {
               <Icon name="lock" size={24} />
             </div>
             <h2>ورود به پنل مدیریت Gemini Shop</h2>
-            <p>جهت مدیریت سفارشات و پاسخگویی به چت آنلاین، شناسه امنیتی خود را وارد فرمایید</p>
+            <p>جهت دسترسی به سیستم مدیریت سفارشات و چت، نام کاربری و رمز عبور خود را وارد نمایید</p>
           </div>
 
           <form onSubmit={handleLogin} className="admin-login__form">
+            <div className="admin-login__field">
+              <label>نام کاربری:</label>
+              <input
+                type="text"
+                placeholder="مثال: admin"
+                className="en"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+                required
+              />
+            </div>
+
             <div className="admin-login__field">
               <label>رمز عبور مدیریت:</label>
               <input
@@ -291,21 +524,27 @@ export function AdminPanel({ open, onClose }: Props) {
                 placeholder="رمز عبور پیش‌فرض: admin123"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoFocus
+                required
               />
             </div>
 
-            {loginError && <div className="admin-login__error">رمز عبور صحیح نمی‌باشد. لطفاً مجدداً بررسی فرمایید.</div>}
+            {loginError && <div className="admin-login__error">{loginError}</div>}
 
             <div className="admin-login__actions">
-              <button type="submit" className="btn btn--accent">ورود به پنل</button>
-              <button type="button" className="btn btn--ghost" onClick={onClose}>انصراف</button>
+              <button type="submit" className="btn btn--accent" disabled={loginLoading}>
+                {loginLoading ? 'در حال ورود...' : 'ورود به پنل'}
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={onClose}>
+                انصراف
+              </button>
             </div>
           </form>
         </div>
       </div>
     );
   }
+
+  const isHead = currentAdmin?.role === 'head_admin';
 
   return (
     <div className="admin-overlay" dir="rtl">
@@ -317,9 +556,18 @@ export function AdminPanel({ open, onClose }: Props) {
               <Icon name="shield" size={16} />
             </div>
             <div>
-              <h1>پنل مدیریت فروشگاه Gemini Shop</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 style={{ margin: 0 }}>پنل مدیریت Gemini Shop</h1>
+                <span
+                  className={`admin-role-badge ${
+                    isHead ? 'admin-role-badge--head' : 'admin-role-badge--regular'
+                  }`}
+                >
+                  {isHead ? '👑 مدیر ارشد سایت' : '🛡️ ادمین فروش و سفارشات'}
+                </span>
+              </div>
               <span className="admin-header__live-tag">
-                <span className="live-dot" /> لایه داده و وب‌سایت همگام
+                <span className="live-dot" /> {currentAdmin?.fullName || 'مدیر فروشگاه'}
               </span>
             </div>
           </div>
@@ -352,13 +600,27 @@ export function AdminPanel({ open, onClose }: Props) {
                 </span>
               )}
             </button>
-            <button
-              className={`admin-tab ${activeTab === 'settings' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('settings')}
-            >
-              <Icon name="code" size={15} />
-              <span>اطلاعات حساب بانکی</span>
-            </button>
+
+            {/* تب‌های اختصاصی مدیر ارشد (Head Admin) */}
+            {isHead && (
+              <>
+                <button
+                  className={`admin-tab ${activeTab === 'admins' ? 'is-active' : ''}`}
+                  onClick={() => setActiveTab('admins')}
+                >
+                  <Icon name="user" size={15} />
+                  <span>همکاران و ادمین‌ها</span>
+                  {adminsList.length > 0 && <span className="tab-badge">{adminsList.length}</span>}
+                </button>
+                <button
+                  className={`admin-tab ${activeTab === 'settings' ? 'is-active' : ''}`}
+                  onClick={() => setActiveTab('settings')}
+                >
+                  <Icon name="code" size={15} />
+                  <span>تنظیمات و درگاه ایمیل</span>
+                </button>
+              </>
+            )}
           </nav>
 
           <div className="admin-header__controls">
@@ -377,7 +639,6 @@ export function AdminPanel({ open, onClose }: Props) {
           {/* تب ۱: داشبورد و آمار تحلیلی کاربردی */}
           {activeTab === 'dashboard' && (
             <div className="admin-view admin-dashboard">
-              {/* کارت‌های آماری استاندارد و حرفه‌ای */}
               <div className="stats-grid">
                 <div className="stat-card stat-card--revenue">
                   <div className="stat-card__icon"><Icon name="sparkle" size={20} /></div>
@@ -449,10 +710,10 @@ export function AdminPanel({ open, onClose }: Props) {
                         </div>
                         <div className="quick-order-actions">
                           <button className="btn btn--sm btn--accent" onClick={() => handleQuickApprove(o)}>
-                            <Icon name="check" size={13} /> تأیید و صدور لینک
+                            تأیید و صدور لینک
                           </button>
                           <button className="btn btn--sm btn--ghost" onClick={() => handleReject(o.id)}>
-                            <Icon name="close" size={13} /> رد
+                            رد فیش
                           </button>
                         </div>
                       </div>
@@ -463,83 +724,68 @@ export function AdminPanel({ open, onClose }: Props) {
             </div>
           )}
 
-          {/* تب ۲: مدیریت جامع سفارشات با ویجت‌های فوق‌العاده کاربردی */}
+          {/* تب ۲: مدیریت سفارش‌ها و واریزی‌ها */}
           {activeTab === 'orders' && (
             <div className="admin-view admin-orders">
-              {/* نوار فیلتر و جستجوی پیشرفته */}
               <div className="orders-toolbar">
-                <div className="orders-search">
-                  <Icon name="search" size={16} />
-                  <input
-                    type="text"
-                    placeholder="جستجو با کد سفارش (GP-...)، شماره موبایل، جیمیل، نام یا شماره پیگیری..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button className="clear-btn" onClick={() => setSearchQuery('')} aria-label="پاک کردن">
-                      <Icon name="close" size={14} />
-                    </button>
-                  )}
-                </div>
-
                 <div className="orders-filters">
-                  <button
-                    className={`filter-btn ${statusFilter === 'all' ? 'is-active' : ''}`}
-                    onClick={() => setStatusFilter('all')}
-                  >
-                    همه ({orders.length})
+                  <button className={`filter-chip ${statusFilter === 'all' ? 'is-active' : ''}`} onClick={() => setStatusFilter('all')}>
+                    همه سفارشات ({orders.length})
                   </button>
-                  <button
-                    className={`filter-btn filter-btn--today ${statusFilter === 'today' ? 'is-active' : ''}`}
-                    onClick={() => setStatusFilter('today')}
-                  >
-                    سفارشات امروز ({todayOrders.length})
-                  </button>
-                  <button
-                    className={`filter-btn filter-btn--pending ${statusFilter === 'pending_verification' ? 'is-active' : ''}`}
-                    onClick={() => setStatusFilter('pending_verification')}
-                  >
+                  <button className={`filter-chip ${statusFilter === 'pending_verification' ? 'is-active' : ''}`} onClick={() => setStatusFilter('pending_verification')}>
                     در انتظار بررسی ({pendingOrders.length})
                   </button>
-                  <button
-                    className={`filter-btn filter-btn--approved ${statusFilter === 'approved' ? 'is-active' : ''}`}
-                    onClick={() => setStatusFilter('approved')}
-                  >
-                    فعال‌شده ({approvedOrders.length})
+                  <button className={`filter-chip ${statusFilter === 'approved' ? 'is-active' : ''}`} onClick={() => setStatusFilter('approved')}>
+                    تأییدشده ({approvedOrders.length})
                   </button>
-                  <button
-                    className={`filter-btn filter-btn--rejected ${statusFilter === 'rejected' ? 'is-active' : ''}`}
-                    onClick={() => setStatusFilter('rejected')}
-                  >
+                  <button className={`filter-chip ${statusFilter === 'rejected' ? 'is-active' : ''}`} onClick={() => setStatusFilter('rejected')}>
                     رد شده ({rejectedOrders.length})
+                  </button>
+                  <button className={`filter-chip ${statusFilter === 'today' ? 'is-active' : ''}`} onClick={() => setStatusFilter('today')}>
+                    ثبت‌شده امروز ({todayOrders.length})
                   </button>
                 </div>
 
-                <button className="btn btn--sm btn--ghost export-btn" onClick={exportToCSV}>
-                  <Icon name="external" size={14} /> دانلود خروجی اکسل (CSV)
-                </button>
+                <div className="orders-actions-row">
+                  <div className="search-box">
+                    <Icon name="search" size={15} />
+                    <input
+                      type="text"
+                      placeholder="جستجو با نام، شماره، ایمیل، شناسه سفارش یا کد پیگیری..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button className="clear-search" onClick={() => setSearchQuery('')}>✕</button>
+                    )}
+                  </div>
+                  <button className="btn btn--sm btn--ghost btn-export" onClick={exportToCSV}>
+                    <Icon name="download" size={14} />
+                    <span>خروجی اکسل (CSV)</span>
+                  </button>
+                </div>
               </div>
 
-              {/* جدول داده‌های تمیز و ساخت‌یافته */}
+              {/* جدول سفارشات */}
               <div className="table-responsive">
-                <table className="orders-table">
+                <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>کد رهگیری</th>
-                      <th>تاریخ و زمان</th>
-                      <th>خریدار و شماره تماس</th>
+                      <th>شناسه سفارش</th>
+                      <th>خریدار</th>
                       <th>جیمیل فعال‌سازی</th>
-                      <th>روش و کد پیگیری</th>
+                      <th>مبلغ</th>
+                      <th>روش و پیگیری</th>
                       <th>وضعیت</th>
-                      <th>اقدامات ادمین</th>
+                      <th>لینک اختصاصی</th>
+                      <th>عملیات</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="table-empty">
-                          هیچ سفارشی مطابق این فیلتر یا عبارت جستجو یافت نشد
+                        <td colSpan={8} className="empty-table-cell">
+                          هیچ سفارشی با این مشخصات یافت نشد.
                         </td>
                       </tr>
                     ) : (
@@ -547,119 +793,101 @@ export function AdminPanel({ open, onClose }: Props) {
                         <tr key={o.id} className={`order-status-row--${o.status}`}>
                           <td>
                             <div className="order-id-cell">
-                              <b className="en">{o.id}</b>
+                              <span className="en">{o.id}</span>
                               <button
-                                className="copy-icon-btn"
+                                className="btn-copy-mini"
                                 onClick={() => copyToClipboard(o.id, `id_${o.id}`)}
-                                title="کپی کد سفارش"
+                                title="کپی شناسه"
                               >
-                                <Icon name="copy" size={12} />
+                                {copiedId === `id_${o.id}` ? '✓' : <Icon name="copy" size={12} />}
                               </button>
-                              {copiedId === `id_${o.id}` && <span className="copied-tooltip">کپی شد</span>}
                             </div>
-                          </td>
-                          <td className="time-cell">
-                            {new Date(o.createdAt).toLocaleDateString('fa-IR')}
-                            <small className="en">{new Date(o.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</small>
+                            <small className="order-date-label">
+                              {new Date(o.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                            </small>
                           </td>
                           <td>
                             <strong>{o.fullName}</strong>
-                            <div className="cell-sub">
-                              <span className="en">{o.mobile}</span>
-                              <button
-                                className="copy-icon-btn"
-                                onClick={() => copyToClipboard(o.mobile, `mob_${o.id}`)}
-                                title="کپی شماره موبایل"
-                              >
-                                <Icon name="copy" size={11} />
-                              </button>
-                              <a href={`tel:${o.mobile}`} className="call-link" title="تماس مستقیم">
-                                <Icon name="headset" size={11} />
-                              </a>
-                            </div>
+                            <div className="en text-muted" style={{ fontSize: '12px' }}>{o.mobile}</div>
                           </td>
                           <td>
-                            <div className="gmail-cell">
-                              <span className="en">{o.gmail}</span>
-                              <button
-                                className="copy-icon-btn"
-                                onClick={() => copyToClipboard(o.gmail, `gm_${o.id}`)}
-                                title="کپی آدرس جیمیل"
-                              >
-                                <Icon name="copy" size={11} />
-                              </button>
-                            </div>
+                            <span className="en highlight-gmail">{o.gmail}</span>
                           </td>
                           <td>
-                            <span className="badge-pay-method">
+                            <b>{formatToman(o.amountToman)}</b> <small>تومان</small>
+                          </td>
+                          <td>
+                            <span className="badge-tag">
                               {o.paymentMethod === 'bezanbekart' ? 'بزن به کارت' : 'کارت به کارت'}
                             </span>
-                            <div className="cell-sub">
-                              <span>پیگیری: <strong className="en">{o.paymentRef}</strong></span>
+                            <div className="payment-ref-text en">
+                              کد: <b>{o.paymentRef}</b>
                             </div>
                           </td>
                           <td>
-                            <span className={`status-pill status-pill--${o.status}`}>
-                              <span className="status-dot" />
-                              {o.status === 'approved'
-                                ? 'فعال‌شده'
-                                : o.status === 'pending_verification'
-                                ? 'در انتظار بررسی'
-                                : 'عدم تایید'}
-                            </span>
+                            {o.status === 'pending_verification' && (
+                              <span className="status-badge status-badge--pending">در انتظار بررسی</span>
+                            )}
+                            {o.status === 'approved' && (
+                              <span className="status-badge status-badge--approved">تأییدشده</span>
+                            )}
+                            {o.status === 'rejected' && (
+                              <span className="status-badge status-badge--rejected">رد شده</span>
+                            )}
                           </td>
                           <td>
-                            <div className="action-buttons">
-                              {/* ویجت پرکاربرد: کپی متن آماده پیامک/تلگرام به مشتری */}
-                              {o.status === 'approved' && (
+                            {o.activationLink ? (
+                              <div className="link-cell-wrap">
+                                <a href={o.activationLink} target="_blank" rel="noreferrer" className="link-preview en">
+                                  {o.activationLink.slice(0, 24)}...
+                                </a>
                                 <button
-                                  className="btn btn--sm btn--delivery"
-                                  onClick={() => copyCustomerDeliveryText(o)}
-                                  title="کپی پیام آماده تلگرام/پیامک تحویل لایسنس به مشتری"
+                                  className="btn-copy-mini"
+                                  onClick={() => copyToClipboard(o.activationLink!, `link_${o.id}`)}
+                                  title="کپی لینک فعال‌سازی"
                                 >
-                                  <Icon name="send" size={12} />
-                                  <span>{copiedDeliveryMsg === o.id ? 'متن کپی شد!' : 'کپی پیام تحویل'}</span>
+                                  {copiedId === `link_${o.id}` ? '✓' : <Icon name="copy" size={12} />}
                                 </button>
-                              )}
-
-                              {o.status !== 'approved' && (
+                              </div>
+                            ) : (
+                              <span className="text-muted" style={{ fontSize: '11px' }}>قفل (ثبت‌نشده)</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="actions-cell">
+                              {o.status === 'pending_verification' && (
                                 <button
                                   className="btn btn--sm btn--accent"
                                   onClick={() => handleQuickApprove(o)}
-                                  title="تأیید فیش و صدور لینک فعال‌سازی"
+                                  title="بررسی واریز و صدور لینک اختصاصی"
                                 >
-                                  <Icon name="check" size={12} /> تأیید
+                                  تأیید
                                 </button>
                               )}
-
-                              {o.status === 'approved' && o.activationLink && (
-                                <a
-                                  href={o.activationLink}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="btn btn--sm btn--ghost"
-                                  title="مشاهده لینک دعوت رسمی گوگل"
-                                >
-                                  <Icon name="external" size={12} /> لینک
-                                </a>
-                              )}
-
-                              {o.status !== 'rejected' && (
+                              {o.status === 'approved' && (
                                 <button
-                                  className="btn btn--sm btn--ghost text-red"
-                                  onClick={() => handleReject(o.id)}
-                                  title="رد فیش واریزی"
+                                  className="btn btn--sm btn--ghost"
+                                  onClick={() => copyCustomerDeliveryText(o)}
+                                  title="کپی پیام آماده ارسال به مشتری"
                                 >
-                                  <Icon name="close" size={12} />
+                                  {copiedDeliveryMsg === o.id ? 'کپی شد!' : 'کپی پیام تحویل'}
                                 </button>
                               )}
-
+                              {o.status === 'pending_verification' && (
+                                <button
+                                  className="btn btn--sm btn--ghost"
+                                  onClick={() => handleReject(o.id)}
+                                  title="رد فیش"
+                                >
+                                  رد
+                                </button>
+                              )}
                               <button
-                                className="btn btn--sm btn--ghost text-muted"
+                                className="btn btn--sm btn-icon-only text-danger"
                                 onClick={() => handleDelete(o.id)}
-                                title="حذف سفارش از لیست"
+                                title="حذف سفارش"
                               >
-                                <Icon name="alert" size={12} />
+                                <Icon name="close" size={13} />
                               </button>
                             </div>
                           </td>
@@ -672,81 +900,60 @@ export function AdminPanel({ open, onClose }: Props) {
             </div>
           )}
 
-          {/* تب ۳: صندوق چت و پیام‌های پشتیبانی آنلاین */}
+          {/* تب ۳: صندوق چت و گفتگوهای زنده خریداران */}
           {activeTab === 'chat' && (
             <div className="admin-view admin-chat-view">
-              {/* لیست سشن‌ها */}
-              <div className="chat-sessions-sidebar">
-                <div className="chat-sessions-head">
-                  <h3>گفتگوهای کاربران ({chatSessions.length})</h3>
+              <div className="admin-chat-sidebar">
+                <div className="admin-chat-sidebar__head">
+                  <strong>گفتگوها ({chatSessions.length})</strong>
                 </div>
-
-                <div className="chat-sessions-list">
+                <div className="admin-chat-sessions-list">
                   {chatSessions.length === 0 ? (
-                    <div className="empty-state">
-                      <p>هنوز پیامی از سمت کاربران ارسال نشده است</p>
-                    </div>
+                    <div className="empty-state">گفتگویی یافت نشد.</div>
                   ) : (
-                    chatSessions.map(({ sessionId, lastMsg, unreadCount }) => (
+                    chatSessions.map((s) => (
                       <div
-                        key={sessionId}
-                        className={`chat-session-item ${selectedSessionId === sessionId ? 'is-active' : ''}`}
+                        key={s.sessionId}
+                        className={`session-item ${selectedSessionId === s.sessionId ? 'is-active' : ''}`}
                         onClick={() => {
-                          setSelectedSessionId(sessionId);
-                          markSessionAsRead(sessionId);
+                          setSelectedSessionId(s.sessionId);
+                          markSessionAsRead(s.sessionId);
                         }}
                       >
-                        <div className="session-item-avatar">
-                          <Icon name="user" size={16} />
-                          {unreadCount > 0 && <span className="session-unread-dot" />}
+                        <div className="session-item__head">
+                          <span className="session-id en">{s.sessionId.slice(0, 16)}</span>
+                          {s.unreadCount > 0 && <span className="session-unread">{s.unreadCount}</span>}
                         </div>
-                        <div className="session-item-body">
-                          <div className="session-item-row">
-                            <strong className="en">{sessionId.slice(0, 14)}...</strong>
-                            <small>{new Date(lastMsg.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}</small>
-                          </div>
-                          <p className="session-item-snippet">{lastMsg.text}</p>
-                        </div>
+                        <p className="session-last-text">{s.lastMsg.text}</p>
+                        <small className="session-time">
+                          {new Date(s.lastMsg.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
+                        </small>
                       </div>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* پنجره گفتگو */}
-              <div className="chat-detail-panel">
+              <div className="admin-chat-main">
                 {selectedSessionId ? (
                   <>
-                    <div className="chat-detail-head">
+                    <div className="admin-chat-header">
                       <div>
-                        <strong>گفتگو با مشتری: <span className="en">{selectedSessionId}</span></strong>
+                        <strong>مکالمه کاربر با شناسه: <span className="en">{selectedSessionId}</span></strong>
                       </div>
-                      <a
-                        href={`https://t.me/${SUPPORT.telegram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn btn--sm btn--ghost"
-                      >
-                        <Icon name="send" size={12} /> تلگرام پشتیبانی
-                      </a>
                     </div>
 
-                    <div className="chat-detail-thread">
+                    <div className="admin-chat-history">
                       {chatMessages
                         .filter((m) => m.sessionId === selectedSessionId)
                         .map((m) => (
-                          <div
-                            key={m.id}
-                            className={`admin-chat-msg admin-chat-msg--${m.sender}`}
-                          >
-                            <div className="admin-chat-bubble">
-                              <span className="msg-author-tag">
-                                {m.sender === 'admin' ? 'پاسخ شما (ادمین)' : m.sender === 'bot' ? 'ربات هوشمند' : 'مشتری'}
-                              </span>
-                              <p>{m.text}</p>
-                              <span className="msg-time">
-                                {new Date(m.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                          <div key={m.id} className={`admin-msg-bubble admin-msg-bubble--${m.sender}`}>
+                            <div className="msg-sender-name">
+                              {m.sender === 'admin' ? 'پشتیبان ادمین' : m.sender === 'bot' ? 'پاسخ هوشمند' : 'کاربر خریدار'}
+                            </div>
+                            <div className="msg-body">{m.text}</div>
+                            <div className="msg-time">
+                              {new Date(m.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                         ))}
@@ -776,8 +983,187 @@ export function AdminPanel({ open, onClose }: Props) {
             </div>
           )}
 
-          {/* تب ۴: تنظیمات حساب بانکی */}
-          {activeTab === 'settings' && (
+          {/* تب ۴: مدیریت همکاران و ادمین‌ها (فقط برای head_admin) */}
+          {activeTab === 'admins' && isHead && (
+            <div className="admin-view admins-management">
+              <div className="admins-header-card">
+                <div>
+                  <h3>مدیریت همکاران و سطوح دسترسی (RBAC)</h3>
+                  <p>تعریف ادمین‌های فروش و اختصاص پرمیشن‌ها (فقط مدیر ارشد مجاز به مدیریت این بخش است)</p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--accent"
+                  onClick={() => {
+                    setAddAdminError(null);
+                    setShowAddAdminModal(true);
+                  }}
+                >
+                  <Icon name="user" size={16} />
+                  <span>افزودن ادمین جدید</span>
+                </button>
+              </div>
+
+              <div className="admins-table-card">
+                <table className="admins-table">
+                  <thead>
+                    <tr>
+                      <th>نام و نام خانوادگی</th>
+                      <th>نام کاربری</th>
+                      <th>سطح دسترسی (Role)</th>
+                      <th>تاریخ ثبت</th>
+                      <th>عملیات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminsList.map((adm) => {
+                      const isSelf = currentAdmin?.username === adm.username;
+                      const isHeadRole = adm.role === 'head_admin';
+                      return (
+                        <tr key={adm.id || adm.username}>
+                          <td>
+                            <strong>{adm.fullName}</strong>
+                            {isSelf && <small style={{ marginRight: '6px', color: '#10b981' }}>(حساب شما)</small>}
+                          </td>
+                          <td>
+                            <code className="en" style={{ fontSize: '13px' }}>{adm.username}</code>
+                          </td>
+                          <td>
+                            <span
+                              className={`admin-role-badge ${
+                                isHeadRole ? 'admin-role-badge--head' : 'admin-role-badge--regular'
+                              }`}
+                            >
+                              {isHeadRole ? '👑 مدیر ارشد (Head Admin)' : '🛡️ ادمین فروش (Orders & Chat)'}
+                            </span>
+                          </td>
+                          <td>
+                            <small className="en text-muted">
+                              {adm.createdAt
+                                ? new Date(adm.createdAt).toLocaleDateString('fa-IR')
+                                : 'پیش‌فرض سیستم'}
+                            </small>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="admin-del-btn"
+                              disabled={isSelf}
+                              onClick={() => handleDeleteAdmin(adm.id, adm.fullName || adm.username)}
+                              title={isSelf ? 'نمی‌توانید حساب جاری خود را حذف کنید' : 'حذف دسترسی ادمین'}
+                            >
+                              <Icon name="close" size={12} />
+                              <span>حذف</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* مدال افزودن ادمین جدید */}
+              {showAddAdminModal && (
+                <div className="modal-inner-overlay">
+                  <div className="approve-modal" style={{ maxWidth: '440px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <h3 style={{ margin: 0 }}>افزودن همکار / ادمین جدید</h3>
+                      <button
+                        className="btn-icon-only"
+                        onClick={() => setShowAddAdminModal(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <p style={{ marginTop: '6px', color: '#64748b' }}>
+                      مشخصات ورود و سطح دسترسی ادمین را مشخص فرمایید:
+                    </p>
+
+                    {addAdminError && (
+                      <div className="admin-login__error" style={{ marginTop: '10px' }}>
+                        {addAdminError}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleCreateAdmin}>
+                      <div className="approve-field">
+                        <label>نام و نام خانوادگی:</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: علی رضایی"
+                          value={newAdminFullName}
+                          onChange={(e) => setNewAdminFullName(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="approve-field">
+                        <label>نام کاربری (جهت ورود به پنل):</label>
+                        <input
+                          type="text"
+                          placeholder="مثال: sales_ali"
+                          className="en"
+                          value={newAdminUsername}
+                          onChange={(e) => setNewAdminUsername(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="approve-field">
+                        <label>رمز عبور ورود:</label>
+                        <input
+                          type="password"
+                          placeholder="حداقل ۶ کاراکتر"
+                          value={newAdminPassword}
+                          onChange={(e) => setNewAdminPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="approve-field">
+                        <label>نقش و سطح پرمیشن:</label>
+                        <select
+                          value={newAdminRole}
+                          onChange={(e) => setNewAdminRole(e.target.value as any)}
+                          style={{
+                            padding: '9px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #cbd5e1',
+                            fontFamily: 'inherit',
+                            fontSize: '13px',
+                          }}
+                        >
+                          <option value="regular_admin">
+                            🛡️ ادمین فروش (فقط دسترسی به مدیریت سفارشات، فیش‌ها و چت آنلاین)
+                          </option>
+                          <option value="head_admin">
+                            👑 مدیر ارشد (دسترسی کامل به مدیریت ادمین‌ها، تنظیمات و کل بخش‌ها)
+                          </option>
+                        </select>
+                      </div>
+
+                      <div className="approve-modal-actions" style={{ marginTop: '20px' }}>
+                        <button type="submit" className="btn btn--accent" disabled={addAdminLoading}>
+                          {addAdminLoading ? 'در حال ثبت...' : 'تأیید و ساخت ادمین'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => setShowAddAdminModal(false)}
+                        >
+                          انصراف
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* تب ۵: تنظیمات و درگاه ایمیل (فقط برای head_admin) */}
+          {activeTab === 'settings' && isHead && (
             <div className="admin-view admin-settings">
               <div className="settings-card">
                 <h3>اطلاعات حساب و درگاه واریز فروشگاه</h3>
@@ -804,74 +1190,84 @@ export function AdminPanel({ open, onClose }: Props) {
 
                 <div className="settings-note">
                   <Icon name="shield" size={16} />
-                  <span>برای تغییر اطلاعات بالا به فایل پیکربندی <code>src/config/site.ts</code> مراجعه فرمایید.</span>
+                  <span>برای تغییر اطلاعات حساب بانکی به فایل پیکربندی <code>src/config/site.ts</code> مراجعه فرمایید.</span>
                 </div>
               </div>
 
-              {/* کارت تنظیمات سامانه پیامکی sms.ir */}
+              {/* کارت تنظیمات سامانه Gmail OTP via TLS 465 */}
               <div className="settings-card" style={{ marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <h3 style={{ margin: 0 }}>تنظیمات سامانه پیامکی sms.ir (ارسال کد تأیید OTP)</h3>
+                  <h3 style={{ margin: 0 }}>تنظیمات ارسال ایمیل کد تأیید (Gmail OTP via TLS 465)</h3>
                   <span
                     className="badge-tag"
                     style={{
-                      background: smsConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                      color: smsConfigured ? '#10b981' : '#3b82f6',
-                      borderColor: smsConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)',
+                      background: smtpConfigured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                      color: smtpConfigured ? '#10b981' : '#3b82f6',
+                      borderColor: smtpConfigured ? 'rgba(16, 185, 129, 0.3)' : 'rgba(59, 130, 246, 0.3)',
                     }}
                   >
-                    {smsConfigured ? '● متصل به وب‌سرویس sms.ir' : '○ حالت شبیه‌ساز امن (دمو)'}
+                    {smtpConfigured ? '● متصل به سرویس زنده جیمیل TLS' : '○ حالت شبیه‌ساز امن (دمو)'}
                   </span>
                 </div>
                 <p className="settings-desc">
-                  ارسال کدهای تایید ورود و اطلاع‌رسانی سفارشات از خط خدماتی و متد وریفای سریع (UltraFastSend).
+                  ارسال کدهای تأیید ورود و لایسنس‌ها مستقیماً از طریق پروتکل امن TLS و پورت 465 گوگل به ایمیل خریداران.
                 </p>
 
-                <form onSubmit={handleSaveSmsSettings}>
+                <form onSubmit={handleSaveSmtpSettings}>
                   <div className="settings-grid">
-                    <div className="settings-field" style={{ gridColumn: 'span 2' }}>
-                      <label>کلید وب‌سرویس (x-api-key):</label>
+                    <div className="settings-field">
+                      <label>آدرس جیمیل فرستنده (Google Account):</label>
+                      <input
+                        type="email"
+                        placeholder="yourshop@gmail.com"
+                        className="en"
+                        value={smtpUser}
+                        onChange={(e) => setSmtpUser(e.target.value)}
+                      />
+                    </div>
+                    <div className="settings-field">
+                      <label>رمز عبور اختصاصی اپلیکیشن (App Password ۱۶ رقمی):</label>
                       <input
                         type="password"
-                        placeholder="کلید API دریافت شده از پنل sms.ir"
+                        placeholder="•••• •••• •••• •••• (App Password)"
                         className="en"
-                        value={smsApiKey}
-                        onChange={(e) => setSmsApiKey(e.target.value)}
+                        value={smtpPass}
+                        onChange={(e) => setSmtpPass(e.target.value)}
                       />
                     </div>
                     <div className="settings-field">
-                      <label>شناسه قالب پترن (Template ID):</label>
+                      <label>سرور SMTP:</label>
                       <input
                         type="text"
-                        placeholder="مثال: 100000"
+                        placeholder="smtp.gmail.com"
                         className="en"
-                        value={smsTemplateId}
-                        onChange={(e) => setSmsTemplateId(e.target.value)}
+                        value={smtpHost}
+                        onChange={(e) => setSmtpHost(e.target.value)}
                       />
                     </div>
                     <div className="settings-field">
-                      <label>نام متغیر کد در قالب (Parameter Name):</label>
+                      <label>پورت اتصال TLS:</label>
                       <input
-                        type="text"
-                        placeholder="Code"
+                        type="number"
+                        placeholder="465"
                         className="en"
-                        value={smsParamName}
-                        onChange={(e) => setSmsParamName(e.target.value)}
+                        value={smtpPort}
+                        onChange={(e) => setSmtpPort(Number(e.target.value))}
                       />
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px' }}>
                     <span style={{ fontSize: '12px', color: '#64748b' }}>
-                      🔒 کلیدها با امنیت بالا در سرور ذخیره شده و هیچ‌گاه در سمت کلاینت فاش نمی‌شوند
+                      🔒 رمزهای عبور بر روی سرور محافظت شده و هیچ‌گاه در سمت کلاینت بازگشت داده نمی‌شوند.
                     </span>
                     <button type="submit" className="btn btn--accent">
-                      ذخیره تنظیمات پیامک
+                      ذخیره تنظیمات جیمیل
                     </button>
                   </div>
-                  {smsSavedToast && (
+                  {smtpSavedToast && (
                     <div className="profile-saved-alert" style={{ marginTop: '12px' }}>
-                      تنظیمات وب‌سرویس پیامکی با موفقیت به‌روزرسانی شد.
+                      تنظیمات درگاه جیمیل با موفقیت ذخیره شد.
                     </div>
                   )}
                 </form>

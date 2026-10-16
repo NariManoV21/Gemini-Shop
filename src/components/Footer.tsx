@@ -1,11 +1,9 @@
 import { FOOTER_LINKS, SITE, SUPPORT } from '../config/site';
 import './Footer.css';
 
-interface Props {
-  onOpenAdmin?: () => void;
-}
+interface Props {}
 
-export function Footer({ onOpenAdmin }: Props) {
+export function Footer({}: Props) {
   const go = (id: string) => (e: React.MouseEvent) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }); };
   return (
     <footer className="footer">
@@ -42,16 +40,6 @@ export function Footer({ onOpenAdmin }: Props) {
         <p>{SITE.affiliationNotice}</p>
         <div className="footer__copyright-row">
           <p>{SITE.copyright}</p>
-          {onOpenAdmin && (
-            <button
-              type="button"
-              className="footer__admin-btn"
-              onClick={onOpenAdmin}
-              title="ورود به پنل مدیریت ادمین"
-            >
-              🔒 پنل مدیریت
-            </button>
-          )}
         </div>
       </div>
     </footer>
