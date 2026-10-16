@@ -1,5 +1,6 @@
 :root {
-  /* رنگ‌ها: نمونه‌برداری‌شده از ماکاپ */
+  color-scheme: light !important;
+  forced-color-adjust: none !important;
   --pearl: #f6f5fc;
   --mist: #e9e8fa;
   --lilac: #d0cfeb;

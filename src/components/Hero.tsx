@@ -57,10 +57,10 @@ export function Hero({ product, onBuy }: Props) {
             <div className="luxury-card__header">
               <div className="luxury-card__brand-col">
                 <div className="luxury-card__brand-title">
+                  <GeminiStar size={30} />
                   <span className="luxury-card__brand-name en">
                     Gemini <b>Pro</b>
                   </span>
-                  <GeminiStar size={30} />
                 </div>
                 <div className="luxury-card__period-pill">
                   <Icon name="calendar" size={14} />
@@ -70,7 +70,7 @@ export function Hero({ product, onBuy }: Props) {
 
               <div className="luxury-card__smart-pill">
                 <Icon name="sparkle" size={14} />
-                <span>انتخابی هوشمندانه</span>
+                <span>انتخاب هوشمندانه</span>
               </div>
             </div>
 
@@ -82,7 +82,7 @@ export function Hero({ product, onBuy }: Props) {
                   <span className="luxury-card__check">
                     <Icon name="check" size={13} />
                   </span>
-                  <span>دسترسی به Gemini 4 Pro و Gemini 3.8 Flash و Gemini 4 Pro Argo</span>
+                  <span>دسترسی به Gemini 3.8 Flash و Gemini 4 Pro Argon</span>
                 </li>
                 <li>
                   <span className="luxury-card__check">
@@ -94,7 +94,7 @@ export function Hero({ product, onBuy }: Props) {
                   <span className="luxury-card__check">
                     <Icon name="check" size={13} />
                   </span>
-                  <span>اشتراک ۱۸ ماهه با ۶ ماهه رایگان</span>
+                  <span>اشتراک ۱۸ ماهه با ۱ ماه رایگان</span>
                 </li>
                 <li>
                   <span className="luxury-card__check">
@@ -130,9 +130,9 @@ export function Hero({ product, onBuy }: Props) {
                   onClick={onBuy}
                   disabled={!product.available}
                 >
-                  <Icon name="arrow" size={16} />
-                  <span>{product.available ? 'خرید و فعال‌سازی روی ایمیل' : 'فعلاً ناموجود'}</span>
                   <Icon name="mail" size={18} />
+                  <span>{product.available ? 'خرید و فعال‌سازی روی ایمیل' : 'فعلاً ناموجود'}</span>
+                  <Icon name="arrow" size={16} />
                 </button>
               </div>
             </div>

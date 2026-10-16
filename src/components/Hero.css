@@ -28,7 +28,7 @@
 }
 
 /* متن (سمت چپ در RTL) */
-.hero__copy { display: flex; flex-direction: column; align-items: flex-end; width: 100%; max-width: 640px; justify-self: end; animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
+.hero__copy { display: flex; flex-direction: column; align-items: flex-end; width: 100%; max-width: 660px; justify-self: end; animation: rise .9s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
 .hero-badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 16px; border-radius: 999px; margin-bottom: 26px; font-weight: 600; font-size: 14px; color: var(--ink); }
@@ -43,34 +43,36 @@
 /* کارت ورودی هیرو ریدیزاین‌شده بر اساس رفرنس ارسالی */
 .price-card.luxury-card {
   width: 100%;
-  max-width: 635px;
+  max-width: 660px;
   margin-top: 28px;
-  padding: 30px 32px 22px 32px;
-  border-radius: 36px;
+  padding: 28px 30px 22px 30px;
+  border-radius: 32px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   background: #ffffff;
-  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow:
-    0 28px 60px -15px rgba(99, 102, 241, 0.16),
-    0 12px 28px -6px rgba(0, 0, 0, 0.04),
+    0 24px 50px -12px rgba(99, 102, 241, 0.14),
+    0 8px 24px -4px rgba(15, 23, 42, 0.04),
     0 0 0 1px rgba(255, 255, 255, 0.95) inset;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .price-card.luxury-card:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 34px 68px -16px rgba(99, 102, 241, 0.22),
-    0 14px 30px -6px rgba(0, 0, 0, 0.05),
+    0 30px 64px -16px rgba(99, 102, 241, 0.2),
+    0 12px 28px -4px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(255, 255, 255, 0.95) inset;
 }
 
 /* نوار بالای کارت: عنوان Gemini Pro + نشان‌ها */
 .luxury-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   padding-bottom: 2px;
@@ -80,24 +82,24 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  gap: 6px;
 }
 
 .luxury-card__brand-title {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .luxury-card__brand-title svg {
-  filter: drop-shadow(0 3px 8px rgba(79, 70, 229, 0.28));
+  filter: drop-shadow(0 3px 8px rgba(79, 70, 229, 0.25));
 }
 
 .luxury-card__brand-name {
-  font-size: 28px;
+  font-size: 27px;
   font-weight: 800;
   color: #1e1b4b;
-  letter-spacing: -0.6px;
+  letter-spacing: -0.5px;
   line-height: 1.1;
 }
 
@@ -112,7 +114,7 @@
 .luxury-card__onetime-pill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   border-radius: 9999px;
   background: #f1edff;
   color: #6366f1;
@@ -121,57 +123,61 @@
 }
 
 .luxury-card__period-pill {
-  padding: 5px 13px;
-  font-size: 12.5px;
+  padding: 5px 12px;
+  font-size: 12px;
 }
 
 .luxury-card__smart-pill {
-  padding: 7px 16px;
-  font-size: 13.5px;
+  padding: 6px 14px;
+  font-size: 12.5px;
 }
 
 .luxury-card__onetime-pill {
-  padding: 6px 14px;
-  font-size: 12px;
-  align-self: flex-end;
+  padding: 5px 12px;
+  font-size: 11.5px;
+  align-self: flex-start;
 }
 
 /* بدنه کارت: ستون ویژگی‌ها و ستون اقدام */
 .luxury-card__body {
   display: grid;
-  grid-template-columns: 1.45fr 1fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.28fr) minmax(0, 1fr);
+  gap: 22px;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .luxury-card__features {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  min-width: 0;
 }
 
 .luxury-card__features li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 13.5px;
-  color: #1e1b4b;
-  line-height: 1.5;
+  gap: 10px;
+  font-size: 13px;
+  color: #1e293b;
+  line-height: 1.45;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: keep-all;
 }
 
 .luxury-card__check {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
   border-radius: 50%;
   background: #f1edff;
   color: #6366f1;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 2px 5px rgba(99, 102, 241, 0.1);
 }
 
 /* ستون اقدام و قیمت */
@@ -179,18 +185,20 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 15px;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .luxury-card__price-box {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 2px;
 }
 
 .luxury-card__price-label {
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
   font-weight: 600;
 }
@@ -199,39 +207,38 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  flex-direction: row-reverse;
 }
 
 .luxury-card__number {
-  font-size: 42px;
+  font-size: 38px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1;
-  letter-spacing: -1px;
+  letter-spacing: -0.6px;
 }
 
 .luxury-card__currency {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: #0f172a;
-  margin-inline-end: 2px;
 }
 
 .luxury-card__cta {
   width: 100%;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 15px 22px;
+  gap: 8px;
+  padding: 13px 18px;
   border-radius: 9999px;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 800;
   white-space: nowrap !important;
   word-break: keep-all;
   color: #ffffff;
-  background: linear-gradient(90deg, #1d68ff 0%, #3b82f6 40%, #7c3aed 100%);
-  box-shadow: 0 10px 24px -4px rgba(59, 130, 246, 0.45), 0 4px 12px rgba(124, 58, 237, 0.25);
+  background: linear-gradient(90deg, #1d68ff 0%, #3b82f6 45%, #7c3aed 100%);
+  box-shadow: 0 10px 24px -4px rgba(59, 130, 246, 0.42), 0 4px 12px rgba(124, 58, 237, 0.22);
   border: none;
   cursor: pointer;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
@@ -239,7 +246,7 @@
 
 .luxury-card__cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px -4px rgba(59, 130, 246, 0.55), 0 6px 16px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 14px 28px -4px rgba(59, 130, 246, 0.52), 0 6px 16px rgba(124, 58, 237, 0.32);
 }
 
 /* فوتر درون کارت: ۳ اعتمادسازی با خطوط جداکننده عمودی */
@@ -247,16 +254,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 18px;
-  border-top: 1px solid rgba(226, 232, 240, 0.8);
-  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(226, 232, 240, 0.85);
+  margin-top: 4px;
 }
 
 .luxury-card__trust-item {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 7px;
+  font-size: 12px;
   font-weight: 600;
   color: #64748b;
 }
@@ -268,7 +275,7 @@
 
 .luxury-card__divider {
   width: 1px;
-  height: 18px;
+  height: 16px;
   background: rgba(203, 213, 225, 0.8);
   flex-shrink: 0;
 }

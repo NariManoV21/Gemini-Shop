@@ -22,6 +22,20 @@ gsap.registerPlugin(ScrollTrigger);
 export function Benefits() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // پاسخ آنی به حرکت نشانگر ماوس و ترانزیشن نرم و پیوسته
+  const handleCardEnter = (id: string) => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    setHoveredId(id);
+  };
+
+  const handleStripLeave = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredId(null);
+    }, 140);
+  };
 
   // حل مشکل مسیر تصاویر در گیت‌هاب پیجز و سایر محیط‌ها
   const resolveAsset = (path: string) => {
@@ -54,7 +68,10 @@ export function Benefits() {
       );
     }, containerRef);
 
-    return () => ctx.revert();
+    return () => {
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      ctx.revert();
+    };
   }, []);
 
   return (
@@ -74,15 +91,18 @@ export function Benefits() {
         </div>
 
         {/* ۴ کارت در یک ردیف در کنار هم با انیمیشن روان و بازشونده */}
-        <div className="showcase-strip" onMouseLeave={() => setHoveredId(null)}>
+        <div className="showcase-strip" onMouseLeave={handleStripLeave}>
           {BENEFITS.map((item) => {
             const isExpanded = hoveredId === item.id;
             return (
               <article
                 key={item.id}
                 className={`showcase-card glass ${isExpanded ? 'is-expanded' : ''}`}
-                onMouseEnter={() => setHoveredId(item.id)}
-                onClick={() => setHoveredId(isExpanded ? null : item.id)}
+                onMouseEnter={() => handleCardEnter(item.id)}
+                onClick={() => {
+                  if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+                  setHoveredId(isExpanded ? null : item.id);
+                }}
                 style={{
                   '--accent-glow': item.glowColor,
                 } as React.CSSProperties}
