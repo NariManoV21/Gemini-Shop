@@ -14,10 +14,12 @@ interface Props {
   onOpenChat?: () => void;
 }
 
+type UserTab = 'dashboard' | 'subscriptions' | 'transactions' | 'profile' | 'support' | 'guide' | 'about';
+
 export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Props) {
   useBodyScrollLock(open);
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'orders' | 'profile'>('dashboard');
+  const [activeTab, setActiveTab] = useState<UserTab>('dashboard');
   const [orders, setOrders] = useState<StoreOrder[]>([]);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
@@ -25,6 +27,10 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
   const [editName, setEditName] = useState(user.fullName);
   const [editGmail, setEditGmail] = useState(user.gmail || '');
   const [savedNote, setSavedNote] = useState(false);
+
+  // پاپ‌اورهای سربرگ
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -82,7 +88,17 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
   const userInitial = user.fullName ? user.fullName.trim().charAt(0) : 'ک';
 
   return (
-    <div className="portal-overlay" dir="rtl" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className="portal-overlay"
+      dir="rtl"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          setShowUserDropdown(false);
+          setShowNotifications(false);
+          onClose();
+        }
+      }}
+    >
       <div className="portal-window portal-window--user" role="dialog" aria-modal="true" aria-labelledby="user-panel-title">
         
         {/* ==================== ستون سایدبار راست (Right Sidebar) ==================== */}
@@ -101,7 +117,11 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === 'dashboard' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => {
+                setActiveTab('dashboard');
+                setShowUserDropdown(false);
+                setShowNotifications(false);
+              }}
             >
               <span className="sidebar-nav-icon">
                 <Icon name="grid" size={17} />
@@ -111,8 +131,12 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
 
             <button
               type="button"
-              className={`sidebar-nav-item ${activeTab === 'orders' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('orders')}
+              className={`sidebar-nav-item ${activeTab === 'subscriptions' ? 'is-active' : ''}`}
+              onClick={() => {
+                setActiveTab('subscriptions');
+                setShowUserDropdown(false);
+                setShowNotifications(false);
+              }}
             >
               <span className="sidebar-nav-icon">
                 <Icon name="sparkle" size={17} />
@@ -123,8 +147,12 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
 
             <button
               type="button"
-              className={`sidebar-nav-item ${activeTab === 'orders' ? '' : ''}`}
-              onClick={() => setActiveTab('orders')}
+              className={`sidebar-nav-item ${activeTab === 'transactions' ? 'is-active' : ''}`}
+              onClick={() => {
+                setActiveTab('transactions');
+                setShowUserDropdown(false);
+                setShowNotifications(false);
+              }}
             >
               <span className="sidebar-nav-icon">
                 <Icon name="bag" size={17} />
@@ -136,7 +164,11 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
             <button
               type="button"
               className={`sidebar-nav-item ${activeTab === 'profile' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => {
+                setActiveTab('profile');
+                setShowUserDropdown(false);
+                setShowNotifications(false);
+              }}
             >
               <span className="sidebar-nav-icon">
                 <Icon name="user" size={17} />
@@ -144,21 +176,20 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
               <span>پروفایل کاربری</span>
             </button>
 
-            {onOpenChat && (
-              <button
-                type="button"
-                className="sidebar-nav-item"
-                onClick={() => {
-                  onClose();
-                  onOpenChat();
-                }}
-              >
-                <span className="sidebar-nav-icon">
-                  <Icon name="headset" size={17} />
-                </span>
-                <span>تیکت‌های پشتیبانی</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeTab === 'support' ? 'is-active' : ''}`}
+              onClick={() => {
+                setActiveTab('support');
+                setShowUserDropdown(false);
+                setShowNotifications(false);
+              }}
+            >
+              <span className="sidebar-nav-icon">
+                <Icon name="headset" size={17} />
+              </span>
+              <span>تیکت‌های پشتیبانی</span>
+            </button>
           </nav>
 
           <div className="portal-sidebar__footer">
@@ -176,17 +207,81 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
           {/* نوار سربرگ بالای داشبورد (Top Bar) */}
           <header className="portal-topbar">
             <div className="portal-topbar__user">
-              <div className="portal-user-avatar">
-                <span>{userInitial}</span>
+              {/* منوی بازشونده مشخصات کاربر */}
+              <div className="portal-user-clickable" onClick={() => setShowUserDropdown(!showUserDropdown)}>
+                <div className="portal-user-avatar">
+                  <span>{userInitial}</span>
+                </div>
+                <div className="portal-user-meta">
+                  <span className="portal-user-name">{user.fullName || 'کاربر گرامی'}</span>
+                  <span className="portal-dropdown-arrow">▾</span>
+                </div>
               </div>
-              <div className="portal-user-meta">
-                <span className="portal-user-name">{user.fullName || 'کاربر گرامی'}</span>
-                <span className="portal-dropdown-arrow">▾</span>
-              </div>
-              <button type="button" className="portal-bell-btn" title="اعلان‌ها">
+
+              {/* دراپ‌داون پروفایل کاربر */}
+              {showUserDropdown && (
+                <div className="portal-popover portal-popover--user">
+                  <div className="popover-user-info">
+                    <strong>{user.fullName || 'کاربر گرامی'}</strong>
+                    <span className="en">{user.gmail || user.mobile}</span>
+                  </div>
+                  <div className="popover-divider" />
+                  <button type="button" className="popover-item" onClick={() => { setActiveTab('profile'); setShowUserDropdown(false); }}>
+                    <Icon name="user" size={15} />
+                    <span>ویرایش مشخصات</span>
+                  </button>
+                  <button type="button" className="popover-item" onClick={() => { setActiveTab('subscriptions'); setShowUserDropdown(false); }}>
+                    <Icon name="sparkle" size={15} />
+                    <span>اشتراک‌های من</span>
+                  </button>
+                  <button type="button" className="popover-item" onClick={() => { setActiveTab('transactions'); setShowUserDropdown(false); }}>
+                    <Icon name="bag" size={15} />
+                    <span>سوابق تراکنش‌ها</span>
+                  </button>
+                  <div className="popover-divider" />
+                  <button type="button" className="popover-item text-danger" onClick={handleLogout}>
+                    <Icon name="logout" size={15} />
+                    <span>خروج از حساب</span>
+                  </button>
+                </div>
+              )}
+
+              {/* دکمه اعلان‌ها همراه با پاپ‌اور */}
+              <button
+                type="button"
+                className="portal-bell-btn"
+                title="اعلان‌ها"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
                 <span className="bell-icon-inner">🔔</span>
-                <span className="bell-pulse-dot" />
+                {pendingOrders.length > 0 && <span className="bell-pulse-dot" />}
               </button>
+
+              {showNotifications && (
+                <div className="portal-popover portal-popover--notifications">
+                  <div className="popover-head">
+                    <strong>اعلان‌های حساب شما</strong>
+                    <small>{pendingOrders.length + approvedOrders.length} مورد</small>
+                  </div>
+                  <div className="popover-notifications-list">
+                    {pendingOrders.map((o) => (
+                      <div key={o.id} className="notification-row notification-row--pending" onClick={() => { setActiveTab('transactions'); setShowNotifications(false); }}>
+                        <span className="notif-badge">⏳ در نوبت بررسی</span>
+                        <p>فیش سفارش <b>{o.id}</b> در صف بررسی کارشناسان قرار دارد.</p>
+                      </div>
+                    ))}
+                    {approvedOrders.slice(0, 2).map((o) => (
+                      <div key={o.id} className="notification-row notification-row--approved" onClick={() => { setActiveTab('subscriptions'); setShowNotifications(false); }}>
+                        <span className="notif-badge">✅ لایسنس فعال شد</span>
+                        <p>اشتراک رسمی شما برای سفارش <b>{o.id}</b> صادر گردید.</p>
+                      </div>
+                    ))}
+                    {orders.length === 0 && (
+                      <div className="notification-empty">اعلان جدیدی وجود ندارد.</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="portal-topbar__links">
@@ -200,20 +295,39 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
               >
                 <span>خرید اشتراک</span>
               </button>
-              <button type="button" className="topbar-link-btn" onClick={() => setActiveTab('dashboard')}>راهنما</button>
-              {onOpenChat && (
-                <button
-                  type="button"
-                  className="topbar-link-btn"
-                  onClick={() => {
-                    onClose();
-                    onOpenChat();
-                  }}
-                >
-                  پشتیبانی
-                </button>
-              )}
-              <button type="button" className="topbar-link-btn" onClick={() => { onClose(); }}>درباره ما</button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'guide' ? 'is-active-link' : ''}`}
+                onClick={() => {
+                  setActiveTab('guide');
+                  setShowUserDropdown(false);
+                  setShowNotifications(false);
+                }}
+              >
+                راهنما
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'support' ? 'is-active-link' : ''}`}
+                onClick={() => {
+                  setActiveTab('support');
+                  setShowUserDropdown(false);
+                  setShowNotifications(false);
+                }}
+              >
+                پشتیبانی
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'about' ? 'is-active-link' : ''}`}
+                onClick={() => {
+                  setActiveTab('about');
+                  setShowUserDropdown(false);
+                  setShowNotifications(false);
+                }}
+              >
+                درباره ما
+              </button>
 
               <button
                 type="button"
@@ -230,7 +344,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
           {/* محتوای درونی اسکرول‌پذیر */}
           <div className="portal-content-body">
             
-            {/* ==================== تب ۱: داشبورد اصلی (دقیقاً مطابق عکس رفرنس) ==================== */}
+            {/* ==================== تب ۱: داشبورد اصلی ==================== */}
             {activeTab === 'dashboard' && (
               <div className="user-dashboard-view">
                 {/* تیتر داشبورد */}
@@ -244,10 +358,10 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                   </div>
                 </div>
 
-                {/* ردیف ۴ کارت آماری تمیز (Light Stat Cards) */}
+                {/* ردیف ۴ کارت آماری روشن و کاملاً تعاملی */}
                 <div className="user-stats-grid">
-                  {/* کارت ۱: کل سفارش‌ها */}
-                  <div className="user-stat-card">
+                  {/* کارت ۱: کل سفارش‌ها -> کلیک برای رفتن به سوابق تراکنش‌ها */}
+                  <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده سوابق و تراکنش‌ها">
                     <div className="user-stat-card__icon user-stat-card__icon--rose">
                       <Icon name="bag" size={20} />
                     </div>
@@ -255,13 +369,13 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <span className="stat-label">کل سفارش‌ها</span>
                       <strong className="stat-value">{orders.length}</strong>
                       <span className="stat-sub">
-                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'وضعیت بررسی عادی'}
+                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'مشاهده فاکتورها ←'}
                       </span>
                     </div>
                   </div>
 
                   {/* کارت ۲: مجموع تراکنش‌ها */}
-                  <div className="user-stat-card">
+                  <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده جزئیات مبالغ پرداختی">
                     <div className="user-stat-card__icon user-stat-card__icon--amber">
                       <span style={{ fontSize: '18px' }}>💳</span>
                     </div>
@@ -275,19 +389,19 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                   </div>
 
                   {/* کارت ۳: موجودی کیف پول */}
-                  <div className="user-stat-card">
+                  <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده کیف پول و اعتبار">
                     <div className="user-stat-card__icon user-stat-card__icon--mint">
                       <span style={{ fontSize: '18px' }}>⏱</span>
                     </div>
                     <div className="user-stat-card__body">
                       <span className="stat-label">موجودی کیف پول</span>
                       <strong className="stat-value">۰ <small>تومان</small></strong>
-                      <span className="stat-sub">شارژ نشده</span>
+                      <span className="stat-sub">شارژ نشده (پرداخت با فیش بانکی)</span>
                     </div>
                   </div>
 
                   {/* کارت ۴: اشتراک‌های فعال و تحویل‌شده */}
-                  <div className="user-stat-card">
+                  <div className="user-stat-card clickable" onClick={() => setActiveTab('subscriptions')} title="مشاهده لایسنس فعال Google AI Pro">
                     <div className="user-stat-card__icon user-stat-card__icon--purple">
                       <span style={{ fontSize: '18px' }}>🔒</span>
                     </div>
@@ -297,7 +411,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <span className="stat-sub">
                         {latestApprovedOrder
                           ? `تاریخ آخرین تحویل: ${new Date(latestApprovedOrder.createdAt).toLocaleDateString('fa-IR')}`
-                          : 'تاریخ آخرین تحویل: ۱۴۰۴/۰۶/۲۷'}
+                          : 'مشاهده لایسنس فعال ←'}
                       </span>
                     </div>
                   </div>
@@ -305,7 +419,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
 
                 {/* بخش پایینی: بنر مدیریت اشتراک + اطلاعات حساب کاربری */}
                 <div className="user-dashboard-split">
-                  {/* بنر ارتقا و مدیریت اشتراک (Pink Aurora Banner Card) */}
+                  {/* بنر ارتقا و مدیریت اشتراک */}
                   <div className="user-aurora-card">
                     <div className="aurora-sparkle-decor">✦</div>
                     <div className="user-aurora-card__content">
@@ -314,7 +428,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <button
                         type="button"
                         className="btn-aurora-action"
-                        onClick={() => setActiveTab('orders')}
+                        onClick={() => setActiveTab('subscriptions')}
                       >
                         <span>مشاهده اشتراک‌های من</span>
                         <span className="arrow-icon">←</span>
@@ -335,7 +449,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <div className="info-summary-row">
                         <span className="info-label">
                           <GoogleG size={13} />
-                          <span>ایمیل:</span>
+                          <span>ایمیل فعال‌سازی:</span>
                         </span>
                         <strong className="info-value en">{user.gmail || 'nimamchi1384@gmail.com'}</strong>
                       </div>
@@ -343,7 +457,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <div className="info-summary-row">
                         <span className="info-label">
                           <Icon name="user" size={13} />
-                          <span>شماره کاربری:</span>
+                          <span>شماره همراه / کاربری:</span>
                         </span>
                         <strong className="info-value en">{user.mobile || '09103527670'}</strong>
                       </div>
@@ -361,11 +475,11 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
               </div>
             )}
 
-            {/* ==================== تب ۲: اشتراک‌های من و لایسنس فعال ==================== */}
-            {activeTab === 'orders' && (
+            {/* ==================== تب ۲: اشتراک‌های من ==================== */}
+            {activeTab === 'subscriptions' && (
               <div className="user-orders-view">
                 {/* کارت ویژه لایسنس رسمی فعال */}
-                {latestApprovedOrder && latestApprovedOrder.activationLink && (
+                {latestApprovedOrder && latestApprovedOrder.activationLink ? (
                   <div className="vip-license-card-light">
                     <div className="vip-license-head-light">
                       <div className="vip-icon-light">
@@ -374,7 +488,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <div>
                         <span className="vip-tag-light">✦ لایسنس رسمی فعال Google AI Pro</span>
                         <h4>{latestApprovedOrder.productName}</h4>
-                        <p>اکانت جیمیل مقصد: <b className="en">{latestApprovedOrder.gmail}</b></p>
+                        <p>اکانت جیمیل متصل: <b className="en">{latestApprovedOrder.gmail}</b></p>
                       </div>
                     </div>
 
@@ -406,21 +520,66 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                         rel="noreferrer"
                         className="btn-vip-activate-light"
                       >
-                        <span>ورود مستقیم به گوگل و فعال‌سازی اکانت</span>
+                        <span>ورود مستقیم به گوگل و فعال‌سازی اشتراک</span>
                         <Icon name="external" size={16} />
                       </a>
                     </div>
+
+                    <div className="vip-instructions-box">
+                      <Icon name="shield" size={15} />
+                      <span><strong>راهنمای فعال‌سازی:</strong> پیش از کلیک روی لینک، VPN یا ابزار تغییر IP خود را روشن فرمایید تا گوگل اشتراک را بدون خطا بر روی اکانت جیمیل شما فعال کند.</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="empty-orders-card">
+                    <Icon name="sparkle" size={40} />
+                    <h4>هنوز اشتراک فعالی برای این حساب ثبت نشده است</h4>
+                    <p>به محض ثبت سفارش و تأیید واریز، لینک رسمی دعوت گوگل و دسترسی اختصاصی شما در این بخش فعال خواهد شد.</p>
+                    <button
+                      type="button"
+                      className="btn-empty-buy-light"
+                      onClick={() => {
+                        onClose();
+                        onBuy();
+                      }}
+                    >
+                      خرید و فعال‌سازی اشتراک ۱۸ ماهه Google AI Pro
+                    </button>
                   </div>
                 )}
+              </div>
+            )}
 
-                {/* لیست سفارشات و سوابق */}
-                <div className="orders-timeline-section">
+            {/* ==================== تب ۳: موجودی و تراکنش‌ها ==================== */}
+            {activeTab === 'transactions' && (
+              <div className="user-transactions-view">
+                <div className="transactions-wallet-card">
+                  <div className="wallet-card-head">
+                    <div>
+                      <span className="wallet-label">موجودی کیف پول حساب کاربری</span>
+                      <strong className="wallet-amount">۰ <small>تومان</small></strong>
+                      <p>روش تسویه کنونی: پرداخت مستقیم کارت به کارت با ثبت فیش</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-wallet-topup"
+                      onClick={() => {
+                        onClose();
+                        onBuy();
+                      }}
+                    >
+                      + خرید لایسنس جدید
+                    </button>
+                  </div>
+                </div>
+
+                <div className="orders-timeline-section" style={{ marginTop: '20px' }}>
                   <div className="orders-header-row">
-                    <h3>تاریخچه و وضعیت سفارشات ({orders.length} مورد)</h3>
+                    <h3>سوابق تراکنش‌ها و پرداخت‌های بانکی ({orders.length} مورد)</h3>
                     {pendingOrders.length > 0 && (
                       <span className="orders-pending-chip">
                         <Icon name="clock" size={13} />
-                        <span>{pendingOrders.length} سفارش در حال بررسی فیش</span>
+                        <span>{pendingOrders.length} تراکنش در حال بررسی</span>
                       </span>
                     )}
                   </div>
@@ -428,18 +587,8 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                   {orders.length === 0 ? (
                     <div className="empty-orders-card">
                       <Icon name="bag" size={36} />
-                      <h4>هنوز سفارشی برای این حساب ثبت نشده است</h4>
-                      <p>پس از ثبت سفارش و واریز کارت به کارت، وضعیت بررسی فیش و لینک اختصاصی گوگل در این بخش قرار می‌گیرد.</p>
-                      <button
-                        type="button"
-                        className="btn-empty-buy-light"
-                        onClick={() => {
-                          onClose();
-                          onBuy();
-                        }}
-                      >
-                        خرید و فعال‌سازی اشتراک Google AI Pro
-                      </button>
+                      <h4>تراکنشی یافت نشد</h4>
+                      <p>پس از ثبت سفارش و واریز وجه، رسید دیجیتال و کد پیگیری تراکنش در این جدول ثبت می‌گردد.</p>
                     </div>
                   ) : (
                     <div className="orders-stack">
@@ -488,21 +637,8 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                             <div><span>تاریخ:</span> <small>{new Date(o.createdAt).toLocaleDateString('fa-IR')}</small></div>
                             <div><span>جیمیل مقصد:</span> <small className="en text-accent">{o.gmail}</small></div>
                             <div><span>پیگیری فیش:</span> <small className="en">{o.paymentRef}</small></div>
-                            <div><span>روش:</span> <small>{o.paymentMethod === 'bezanbekart' ? 'بزن به کارت' : 'کارت به کارت'}</small></div>
+                            <div><span>روش واریز:</span> <small>{o.paymentMethod === 'bezanbekart' ? 'درگاه بزن به کارت' : 'کارت به کارت'}</small></div>
                           </div>
-
-                          {o.status === 'approved' && o.activationLink && (
-                            <div className="order-link-mini-row-light">
-                              <input type="text" readOnly className="en mini-link-input" value={o.activationLink} />
-                              <button
-                                type="button"
-                                className="btn-copy-action-light btn-copy-mini"
-                                onClick={() => handleCopyLink(o.activationLink!, o.id)}
-                              >
-                                {copiedLink === o.id ? '✓ کپی شد' : 'کپی لینک'}
-                              </button>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
@@ -511,7 +647,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
               </div>
             )}
 
-            {/* ==================== تب ۳: پروفایل و مشخصات ==================== */}
+            {/* ==================== تب ۴: پروفایل کاربری ==================== */}
             {activeTab === 'profile' && (
               <div className="user-profile-edit-view">
                 <div className="profile-form-card">
@@ -572,6 +708,125 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       </button>
                     </div>
                   </form>
+                </div>
+              </div>
+            )}
+
+            {/* ==================== تب ۵: تیکت‌های پشتیبانی ==================== */}
+            {activeTab === 'support' && (
+              <div className="user-support-view">
+                <div className="support-hero-card">
+                  <div className="support-icon-circle">
+                    <Icon name="headset" size={28} />
+                  </div>
+                  <h3>مرکز پشتیبانی و تیکت آنلاین Gemini Shop</h3>
+                  <p>تیم فنی و پشتیبانی ۲۴/۷ آماده پاسخگویی به پرسش‌ها و بررسی سفارشات شماست.</p>
+
+                  <div className="support-channels-grid">
+                    <div className="support-channel-item">
+                      <span className="channel-icon">💬</span>
+                      <strong>چت آنلاین داخل سایت</strong>
+                      <p>گفتگوی زنده با پشتیبان جهت استعلام فوری فیش و وضعیت لایسنس</p>
+                      {onOpenChat && (
+                        <button
+                          type="button"
+                          className="btn-channel-action"
+                          onClick={() => {
+                            onClose();
+                            onOpenChat();
+                          }}
+                        >
+                          باز کردن چت آنلاین
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="support-channel-item">
+                      <span className="channel-icon">✈️</span>
+                      <strong>پشتیبانی اختصاصی تلگرام</strong>
+                      <p>ارسال پیام به آی‌دی مستقیم تلگرام با زمان پاسخگویی کمتر از ۵ دقیقه</p>
+                      <a
+                        href="https://t.me/GeminiProSupport"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-channel-action"
+                      >
+                        ارسال پیام در تلگرام
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ==================== تب ۶: راهنمای فعال‌سازی ==================== */}
+            {activeTab === 'guide' && (
+              <div className="user-guide-view">
+                <div className="guide-card">
+                  <h3>راهنمای ۴ مرحله‌ای فعال‌سازی اشتراک Google AI Pro</h3>
+                  <p className="guide-intro">لطفاً پیش از کلیک روی لینک لایسنس اختصاصی مراحل زیر را رعایت فرمایید:</p>
+
+                  <div className="guide-steps-list">
+                    <div className="guide-step-item">
+                      <div className="step-num-badge">۱</div>
+                      <div>
+                        <strong>روشن کردن ابزار تغییر IP (DNS Leak Free)</strong>
+                        <p>به دلیل محدودیت‌های منطقه‌ای شرکت گوگل، پیش از باز کردن لینک حتماً VPN با کیفیت (لوکیشن آمریکا، آلمان یا امارات) را متصل فرمایید.</p>
+                      </div>
+                    </div>
+
+                    <div className="guide-step-item">
+                      <div className="step-num-badge">۲</div>
+                      <div>
+                        <strong>ورود به اکانت جیمیل اصلی در مرورگر</strong>
+                        <p>مطمئن شوید همان اکانت جیمیل که هنگام خرید ثبت کرده‌اید در مرورگر لاگین باشد تا اشتراک مستقیماً بر روی آن فعال شود.</p>
+                      </div>
+                    </div>
+
+                    <div className="guide-step-item">
+                      <div className="step-num-badge">۳</div>
+                      <div>
+                        <strong>کلیک بر روی لینک اختصاصی دعوت گوگل</strong>
+                        <p>از تب «اشتراک‌های من» روی دکمه ورود مستقیم به گوگل کلیک کنید و در صفحه بازشده دکمه «Accept Promo» یا تایید را بزنید.</p>
+                      </div>
+                    </div>
+
+                    <div className="guide-step-item">
+                      <div className="step-num-badge">۴</div>
+                      <div>
+                        <strong>تأیید فعال‌سازی و لذت بردن از هوش مصنوعی</strong>
+                        <p>ظرف چند ثانیه، فضای ۲ ترابایت Google One و نشان Gemini Advanced بر روی اکانت شما فعال خواهد شد.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ==================== تب ۷: درباره ما ==================== */}
+            {activeTab === 'about' && (
+              <div className="user-about-view">
+                <div className="about-brand-card">
+                  <div className="about-brand-head">
+                    <span className="brand-gemini-sparkle" style={{ fontSize: '32px' }}>✦</span>
+                    <div>
+                      <h3>درباره Gemini Shop</h3>
+                      <p>پلتفرم ارائه اشتراک‌های رسمی و قانونی هوش مصنوعی گوگل در ایران</p>
+                    </div>
+                  </div>
+                  <div className="about-text-body">
+                    <p>
+                      فروشگاه Gemini Shop با هدف تسهیل دسترسی متخصصان، پژوهشگران و کاربران ایرانی به جدیدترین نسخه هوش مصنوعی Google Gemini Pro و سرویس ابری ۵ ترابایت گوگل تأسیس گردیده است.
+                    </p>
+                    <p>
+                      تمامی لایسنس‌های ارائه‌شده ۱۰۰٪ رسمی و به صورت دعوت‌نامه مستقیم Google One صادر می‌شوند و هیچ‌گونه اکانت اشتراکی، کرک‌شده یا ناامن به خریداران تحویل داده نمی‌شود.
+                    </p>
+                  </div>
+                  <div className="about-guarantees-row">
+                    <div className="guarantee-pill">🔒 لایسنس اختصاصی روی اکانت شخصی شما</div>
+                    <div className="guarantee-pill">⚡ تحویل سریع ۲ الی ۴۸ ساعته</div>
+                    <div className="guarantee-pill">🛡️ پشتیبانی و تضمین کارکرد تا آخرین روز</div>
+                  </div>
                 </div>
               </div>
             )}

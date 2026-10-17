@@ -1087,3 +1087,422 @@
     display: none;
   }
 }
+
+/* ==================== ۷. استایل‌های پاپ‌اور و منوهای تعاملی کاربر ==================== */
+.portal-user-clickable {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+
+.portal-user-clickable:hover {
+  background: #f1ece6;
+}
+
+.portal-popover {
+  position: absolute;
+  top: 54px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.05);
+  z-index: 100;
+  overflow: hidden;
+  animation: popoverFadeIn 0.15s ease-out;
+}
+
+@keyframes popoverFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portal-dropdown-menu {
+  left: 10px;
+  width: 220px;
+  padding: 6px;
+}
+
+.popover-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: right;
+  transition: all 0.14s ease;
+}
+
+.popover-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.popover-item--danger {
+  color: #e11d48;
+}
+
+.popover-item--danger:hover {
+  background: #fff1f2;
+  color: #be185d;
+}
+
+.popover-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+.popover-notifications {
+  left: 60px;
+  width: 310px;
+  padding: 12px;
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.popover-head small {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 700;
+}
+
+.popover-notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.popover-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #334155;
+}
+
+.popover-notification-item.unread {
+  background: #fff1f2;
+}
+
+/* ==================== ۸. تب کیف پول و موجودی (Transactions) ==================== */
+.user-transactions-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.transactions-wallet-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 20px;
+  padding: 26px 30px;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+}
+
+.wallet-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.wallet-badge-pill {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(225, 29, 72, 0.25);
+  color: #fda4af;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+}
+
+.wallet-user-email {
+  font-size: 12px;
+  color: #94a3b8;
+  direction: ltr;
+}
+
+.wallet-balance-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.wallet-balance-title {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.wallet-balance-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-balance-currency {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.wallet-note {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.btn-wallet-topup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e11d48, #be185d);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+  transition: all 0.15s ease;
+}
+
+.btn-wallet-topup:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+}
+
+/* ==================== ۹. تب پشتیبانی و راه‌های ارتباطی ==================== */
+.user-support-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.support-hero-card {
+  background: #ffffff;
+  border: 1px solid #f1ece6;
+  border-radius: 20px;
+  padding: 26px 28px;
+}
+
+.support-hero-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.support-hero-card p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 20px;
+}
+
+.support-channels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.support-channel-item {
+  background: #faf8f5;
+  border: 1px solid #ede8e1;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.support-channel-item .channel-icon {
+  font-size: 28px;
+}
+
+.support-channel-item strong {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.support-channel-item p {
+  font-size: 12.5px;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.btn-channel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 18px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: auto;
+}
+
+.btn-channel-action:hover {
+  background: #e11d48;
+}
+
+/* ==================== ۱۰. تب راهنمای فعال‌سازی ==================== */
+.user-guide-view {
+  background: #ffffff;
+  border: 1px solid #f1ece6;
+  border-radius: 20px;
+  padding: 26px 28px;
+}
+
+.guide-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.guide-intro {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 20px;
+}
+
+.guide-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.guide-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 18px;
+  background: #faf8f5;
+  border: 1px solid #ede8e1;
+  border-radius: 14px;
+}
+
+.step-num-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e11d48;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.guide-step-item strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.guide-step-item p {
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ==================== ۱۱. تب درباره ما و ضمانت‌ها ==================== */
+.user-about-view {
+  background: #ffffff;
+  border: 1px solid #f1ece6;
+  border-radius: 20px;
+  padding: 28px 30px;
+}
+
+.about-brand-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1ece6;
+}
+
+.about-brand-head h3 {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.about-brand-head p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.about-text-body {
+  font-size: 13.5px;
+  color: #334155;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+
+.about-text-body p {
+  margin-bottom: 12px;
+}
+
+.about-guarantees-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.guarantee-pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+

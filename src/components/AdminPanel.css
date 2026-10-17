@@ -958,3 +958,253 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==================== ۷. استایل‌های پاپ‌اور و منوهای تعاملی ادمین ==================== */
+.admin-stat-card--interactive {
+  cursor: pointer;
+  user-select: none;
+}
+
+.admin-stat-card--interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 14px 32px -4px rgba(15, 23, 42, 0.35);
+}
+
+.admin-stat-card--interactive:active {
+  transform: translateY(-1px);
+}
+
+.portal-user-clickable {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+
+.portal-user-clickable:hover {
+  background: #f1ece6;
+}
+
+.portal-popover {
+  position: absolute;
+  top: 50px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12), 0 4px 10px rgba(15, 23, 42, 0.05);
+  z-index: 100;
+  overflow: hidden;
+  animation: adminPopoverFadeIn 0.15s ease-out;
+}
+
+@keyframes adminPopoverFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portal-dropdown-menu {
+  width: 230px;
+  padding: 6px;
+}
+
+.popover-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: right;
+  transition: all 0.14s ease;
+}
+
+.popover-item:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.popover-item--danger {
+  color: #e11d48;
+}
+
+.popover-item--danger:hover {
+  background: #fff1f2;
+  color: #be185d;
+}
+
+.popover-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
+}
+
+.popover-notifications {
+  width: 310px;
+  padding: 12px;
+}
+
+.popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.popover-head small {
+  font-size: 11px;
+  color: #059669;
+  font-weight: 700;
+}
+
+.popover-notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.popover-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #334155;
+  transition: background 0.15s ease;
+}
+
+.popover-notification-item:hover {
+  background: #f1f5f9;
+}
+
+.popover-notification-item.unread {
+  background: #fff1f2;
+}
+
+.popover-notification-item.unread:hover {
+  background: #ffe4e6;
+}
+
+/* ==================== ۸. مدال اختصاصی گزارش‌ها (Reports Confirmation Modal) ==================== */
+.reports-dialog-modal {
+  max-width: 520px;
+}
+
+.reports-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1ece6;
+}
+
+.reports-dialog-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.reports-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.reports-preview-card {
+  background: #faf8f5;
+  border: 1px solid #ede8e1;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reports-preview-card small {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.reports-preview-card strong {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.reports-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reports-filter-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #334155;
+}
+
+.reports-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-option-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-option-label:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.report-option-label.is-selected {
+  background: #fff1f2;
+  border-color: #f43f5e;
+  color: #9f1239;
+}
+
+.report-option-label input[type="radio"] {
+  accent-color: #e11d48;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+

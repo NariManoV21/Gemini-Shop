@@ -84,6 +84,12 @@ export function AdminPanel({ open, onClose }: Props) {
   const [smtpConfigured, setSmtpConfigured] = useState(false);
   const [smtpSavedToast, setSmtpSavedToast] = useState(false);
 
+  // وضعیت مودال گزارش‌ها و پاپ‌اورهای سربرگ
+  const [showReportsModal, setShowReportsModal] = useState(false);
+  const [reportFilter, setReportFilter] = useState<'all' | 'approved' | 'pending' | 'today'>('all');
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false);
+  const [showAdminNotifications, setShowAdminNotifications] = useState(false);
+
   // بررسی نشست لاگین قبلی از sessionStorage
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('gemini_admin_auth') === 'true';
@@ -108,16 +114,7 @@ export function AdminPanel({ open, onClose }: Props) {
     }
   }, []);
 
-  // محافظت از تب‌های اختصاصی
-  useEffect(() => {
-    if (currentAdmin && currentAdmin.role !== 'head_admin') {
-      if (activeTab === 'admins' || activeTab === 'settings') {
-        setActiveTab('dashboard');
-      }
-    }
-  }, [currentAdmin, activeTab]);
-
-  // بارگذاری لیست ادمین‌ها برای head_admin
+  // بارگذاری لیست ادمین‌ها
   const loadAdminsList = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/users`, {
@@ -165,11 +162,11 @@ export function AdminPanel({ open, onClose }: Props) {
   };
 
   useEffect(() => {
-    if (open && isAuthenticated && currentAdmin?.role === 'head_admin') {
+    if (open && isAuthenticated) {
       loadSettings();
       loadAdminsList();
     }
-  }, [open, isAuthenticated, currentAdmin]);
+  }, [open, isAuthenticated]);
 
   const handleSaveSmtpSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -452,10 +449,20 @@ export function AdminPanel({ open, onClose }: Props) {
     setAdminReplyInput('');
   };
 
-  // خروجی استاندارد CSV
-  const exportToCSV = () => {
+  // خروجی استاندارد و فیلترشده CSV
+  const handleDownloadReport = () => {
+    let targetOrders = orders;
+    if (reportFilter === 'approved') {
+      targetOrders = orders.filter((o) => o.status === 'approved');
+    } else if (reportFilter === 'pending') {
+      targetOrders = orders.filter((o) => o.status === 'pending_verification');
+    } else if (reportFilter === 'today') {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      targetOrders = orders.filter((o) => o.createdAt.startsWith(todayStr));
+    }
+
     const headers = ['کد سفارش', 'تاریخ', 'نام خریدار', 'موبایل', 'جیمیل', 'مبلغ (تومان)', 'روش پرداخت', 'کد پیگیری', 'وضعیت', 'لینک فعال‌سازی', 'یادداشت ادمین'];
-    const rows = orders.map((o) => [
+    const rows = targetOrders.map((o) => [
       o.id,
       new Date(o.createdAt).toLocaleDateString('fa-IR'),
       o.fullName,
@@ -473,11 +480,18 @@ export function AdminPanel({ open, onClose }: Props) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `GeminiShop_Orders_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `GeminiShop_Report_${reportFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setShowReportsModal(false);
   };
+
+  // باز کردن مدال گزارش‌ها جهت پیش‌نمایش و جلوگیری از دانلود ناخواسته
+  const exportToCSV = () => {
+    setShowReportsModal(true);
+  };
+
 
   // فرم ورود به پنل (طراحی روشن و منطبق)
   if (!isAuthenticated) {
@@ -533,7 +547,7 @@ export function AdminPanel({ open, onClose }: Props) {
     );
   }
 
-  const isHead = currentAdmin?.role === 'head_admin';
+  const isHead = true;
 
   return (
     <div className="portal-overlay" dir="rtl" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -585,33 +599,30 @@ export function AdminPanel({ open, onClose }: Props) {
               )}
             </button>
 
-            {isHead && (
-              <button
-                type="button"
-                className={`sidebar-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('settings')}
-              >
-                <span className="sidebar-nav-icon"><Icon name="code" size={17} /></span>
-                <span>موجودی و پرداخت‌ها</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeTab === 'settings' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('settings')}
+            >
+              <span className="sidebar-nav-icon"><Icon name="code" size={17} /></span>
+              <span>موجودی و پرداخت‌ها</span>
+            </button>
 
-            {isHead && (
-              <button
-                type="button"
-                className={`sidebar-nav-item ${activeTab === 'admins' ? 'is-active' : ''}`}
-                onClick={() => setActiveTab('admins')}
-              >
-                <span className="sidebar-nav-icon"><Icon name="user" size={17} /></span>
-                <span>تنظیمات سایت</span>
-                {adminsList.length > 0 && <span className="nav-badge-neutral">{adminsList.length}</span>}
-              </button>
-            )}
+            <button
+              type="button"
+              className={`sidebar-nav-item ${activeTab === 'admins' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('admins')}
+            >
+              <span className="sidebar-nav-icon"><Icon name="user" size={17} /></span>
+              <span>همکاران و دسترسی‌ها</span>
+              {adminsList.length > 0 && <span className="nav-badge-neutral">{adminsList.length}</span>}
+            </button>
 
             <button
               type="button"
               className="sidebar-nav-item"
-              onClick={exportToCSV}
+              onClick={() => setShowReportsModal(true)}
+              title="گزارش‌گیری و دانلود فایل اکسل"
             >
               <span className="sidebar-nav-icon"><Icon name="download" size={17} /></span>
               <span>گزارش‌ها</span>
@@ -630,29 +641,223 @@ export function AdminPanel({ open, onClose }: Props) {
         <div className="portal-main-area">
           {/* نوار سربرگ بالای داشبورد ادمین (Top Bar) - رفرنس عکس ۱ */}
           <header className="portal-topbar">
-            <div className="portal-topbar__user">
-              <div className="portal-user-avatar">
-                <span>A</span>
-              </div>
-              <div className="portal-user-meta">
+            <div className="portal-topbar__user" style={{ position: 'relative' }}>
+              <div
+                className="portal-user-meta portal-user-clickable"
+                onClick={() => {
+                  setShowAdminDropdown(!showAdminDropdown);
+                  setShowAdminNotifications(false);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                title="منوی کاربری مدیر"
+              >
+                <div className="portal-user-avatar">
+                  <span>A</span>
+                </div>
                 <span className="portal-user-name">مدیر</span>
                 <span className="portal-dropdown-arrow">▾</span>
               </div>
-              <button type="button" className="portal-bell-btn" title="اعلان‌ها">
+
+              <button
+                type="button"
+                className="portal-bell-btn"
+                title="اعلان‌های زنده مدیریت"
+                onClick={() => {
+                  setShowAdminNotifications(!showAdminNotifications);
+                  setShowAdminDropdown(false);
+                }}
+              >
                 <span className="bell-icon-inner">🔔</span>
                 {pendingOrders.length > 0 && <span className="bell-pulse-dot" />}
               </button>
+
+              {/* منوی دراپ‌داون مدیر */}
+              {showAdminDropdown && (
+                <div className="portal-popover portal-dropdown-menu" style={{ right: 0, left: 'auto', top: '50px' }}>
+                  <div className="popover-head" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <strong style={{ fontSize: '13px', color: '#0f172a' }}>{currentAdmin?.fullName || 'مدیر سیستم'}</strong>
+                      <small style={{ fontSize: '11px', color: '#64748b' }}>سطح دسترسی: مدیر ارشد (Head Admin)</small>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('all');
+                      setShowAdminDropdown(false);
+                    }}
+                  >
+                    <Icon name="bag" size={15} />
+                    <span>مدیریت سفارش‌ها ({orders.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => {
+                      setActiveTab('chat');
+                      setShowAdminDropdown(false);
+                    }}
+                  >
+                    <Icon name="headset" size={15} />
+                    <span>مکالمات و چت با کاربران</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setShowAdminDropdown(false);
+                    }}
+                  >
+                    <Icon name="code" size={15} />
+                    <span>تنظیمات درگاه و پرداخت</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => {
+                      setActiveTab('admins');
+                      setShowAdminDropdown(false);
+                    }}
+                  >
+                    <Icon name="user" size={15} />
+                    <span>مدیریت همکاران سیستم</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="popover-item"
+                    onClick={() => {
+                      setShowReportsModal(true);
+                      setShowAdminDropdown(false);
+                    }}
+                  >
+                    <Icon name="download" size={15} />
+                    <span>گزارش‌گیری و اکسل</span>
+                  </button>
+                  <div className="popover-divider" />
+                  <button
+                    type="button"
+                    className="popover-item popover-item--danger"
+                    onClick={() => {
+                      setShowAdminDropdown(false);
+                      handleLogout();
+                    }}
+                  >
+                    <Icon name="logout" size={15} />
+                    <span>خروج از پنل مدیریت</span>
+                  </button>
+                </div>
+              )}
+
+              {/* پاپ‌اور اعلان‌های زنده ادمین */}
+              {showAdminNotifications && (
+                <div className="portal-popover popover-notifications" style={{ right: '40px', left: 'auto', top: '50px' }}>
+                  <div className="popover-head">
+                    <span>اعلان‌های سفارشات و پیام‌ها</span>
+                    <small>{pendingOrders.length + chatMessages.filter((m) => !m.isRead && m.sender === 'user').length} مورد</small>
+                  </div>
+                  <div className="popover-notifications-list">
+                    {pendingOrders.length === 0 && chatMessages.filter((m) => !m.isRead && m.sender === 'user').length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '16px 8px', color: '#64748b', fontSize: '12px' }}>
+                        هیچ اعلان خوانده‌نشده‌ای وجود ندارد. تمام سفارش‌ها بررسی شده‌اند.
+                      </div>
+                    ) : (
+                      <>
+                        {pendingOrders.slice(0, 4).map((o) => (
+                          <div
+                            key={o.id}
+                            className="popover-notification-item unread"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              setActiveTab('orders');
+                              setStatusFilter('pending_verification');
+                              setShowAdminNotifications(false);
+                            }}
+                          >
+                            <span>🛍️</span>
+                            <div>
+                              <strong>سفارش جدید: #{o.id}</strong>
+                              <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+                                خریدار: {o.fullName} ({o.amountToman.toLocaleString('fa-IR')} ت)
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {chatMessages.filter((m) => !m.isRead && m.sender === 'user').slice(0, 3).map((m, idx) => (
+                          <div
+                            key={idx}
+                            className="popover-notification-item unread"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              setActiveTab('chat');
+                              setShowAdminNotifications(false);
+                            }}
+                          >
+                            <span>💬</span>
+                            <div>
+                              <strong>پیام جدید در چت آنلاین</strong>
+                              <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#64748b' }}>
+                                {m.text.slice(0, 35)}...
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="portal-topbar__links">
-              <div className="topbar-active-pill">
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'dashboard' ? 'topbar-active-pill' : ''}`}
+                onClick={() => setActiveTab('dashboard')}
+              >
                 <Icon name="grid" size={14} />
-                <span>داشبورد و تصویر آمار</span>
-              </div>
-              <button type="button" className="topbar-link-btn" onClick={() => setActiveTab('chat')}>مکالمات و پشتیبانی</button>
-              <button type="button" className="topbar-link-btn" onClick={() => setActiveTab('orders')}>سفارشات</button>
-              {isHead && <button type="button" className="topbar-link-btn" onClick={() => setActiveTab('admins')}>همکاران</button>}
-              {isHead && <button type="button" className="topbar-link-btn" onClick={() => setActiveTab('settings')}>تنظیمات</button>}
+                <span>داشبورد و آمار</span>
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'chat' ? 'topbar-active-pill' : ''}`}
+                onClick={() => setActiveTab('chat')}
+              >
+                <span>مکالمات و پشتیبانی</span>
+                {chatMessages.filter((m) => !m.isRead && m.sender === 'user').length > 0 && (
+                  <span className="nav-badge-pill" style={{ marginInlineStart: '4px' }}>
+                    {chatMessages.filter((m) => !m.isRead && m.sender === 'user').length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'orders' ? 'topbar-active-pill' : ''}`}
+                onClick={() => setActiveTab('orders')}
+              >
+                <span>سفارشات</span>
+                {pendingOrders.length > 0 && (
+                  <span className="nav-badge-pill" style={{ marginInlineStart: '4px' }}>
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'admins' ? 'topbar-active-pill' : ''}`}
+                onClick={() => setActiveTab('admins')}
+              >
+                <span>همکاران</span>
+              </button>
+              <button
+                type="button"
+                className={`topbar-link-btn ${activeTab === 'settings' ? 'topbar-active-pill' : ''}`}
+                onClick={() => setActiveTab('settings')}
+              >
+                <span>تنظیمات</span>
+              </button>
 
               <button
                 type="button"
@@ -673,10 +878,17 @@ export function AdminPanel({ open, onClose }: Props) {
             {activeTab === 'dashboard' && (
               <div className="admin-dashboard-view">
                 
-                {/* ردیف ۴ کارت تیره آمار (Dark Navy/Slate Stat Cards) */}
+                {/* ردیف ۴ کارت تیره آمار تعاملی (Dark Navy/Slate Stat Cards) */}
                 <div className="admin-dark-stats-grid">
                   {/* کارت ۱: کل سفارش‌های مشتریان (سمت چپ در چیدمان RTL) */}
-                  <div className="admin-dark-stat-card">
+                  <div
+                    className="admin-dark-stat-card admin-stat-card--interactive"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('all');
+                    }}
+                    title="کلیک برای مشاهده تمام سفارش‌ها"
+                  >
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--purple">
                       <Icon name="headset" size={20} />
                     </div>
@@ -688,7 +900,14 @@ export function AdminPanel({ open, onClose }: Props) {
                   </div>
 
                   {/* کارت ۲: اکانت‌های فعال و تحویل‌شده */}
-                  <div className="admin-dark-stat-card">
+                  <div
+                    className="admin-dark-stat-card admin-stat-card--interactive"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('approved');
+                    }}
+                    title="کلیک برای مشاهده سفارش‌های تأیید و تحویل‌شده"
+                  >
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--emerald">
                       <Icon name="check" size={20} />
                     </div>
@@ -700,7 +919,14 @@ export function AdminPanel({ open, onClose }: Props) {
                   </div>
 
                   {/* کارت ۳: فروش‌های در انتظار بررسی */}
-                  <div className="admin-dark-stat-card">
+                  <div
+                    className="admin-dark-stat-card admin-stat-card--interactive"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('pending_verification');
+                    }}
+                    title="کلیک برای بررسی سفارش‌های در انتظار تایید فیش"
+                  >
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--amber">
                       <span style={{ fontSize: '20px' }}>⏱</span>
                     </div>
@@ -712,7 +938,11 @@ export function AdminPanel({ open, onClose }: Props) {
                   </div>
 
                   {/* کارت ۴: مجموع درآمد حقیقی/روزانه (سمت راست در چیدمان RTL) */}
-                  <div className="admin-dark-stat-card">
+                  <div
+                    className="admin-dark-stat-card admin-stat-card--interactive"
+                    onClick={() => setShowReportsModal(true)}
+                    title="کلیک برای گزارش‌گیری مالی و خروجی فایل اکسل"
+                  >
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--teal">
                       <span style={{ fontSize: '20px' }}>✦</span>
                     </div>
@@ -1336,7 +1566,112 @@ export function AdminPanel({ open, onClose }: Props) {
           </div>
         )}
 
+        {/* مدال انتخاب بازه و پیش‌نمایش گزارش‌ها (جلوگیری از دانلود ناخواسته) */}
+        {showReportsModal && (
+          <div className="modal-inner-overlay-light" onClick={(e) => e.target === e.currentTarget && setShowReportsModal(false)}>
+            <div className="approve-modal-light reports-dialog-modal">
+              <div className="reports-dialog-header">
+                <div className="reports-dialog-icon">📊</div>
+                <div>
+                  <h3 style={{ fontSize: '17px', margin: '0 0 4px', color: '#0f172a' }}>گزارش‌گیری و دریافت فایل اکسل (CSV)</h3>
+                  <p style={{ fontSize: '12.5px', color: '#64748b', margin: 0 }}>پیش از دریافت فایل، نوع گزارش و بازه مورد نظر خود را مشخص فرمایید:</p>
+                </div>
+              </div>
+
+              <div className="reports-preview-grid">
+                <div className="reports-preview-card">
+                  <small>کل سفارش‌ها</small>
+                  <strong>{orders.length}</strong>
+                </div>
+                <div className="reports-preview-card">
+                  <small>موفق و تاییدشده</small>
+                  <strong style={{ color: '#059669' }}>{approvedOrders.length}</strong>
+                </div>
+                <div className="reports-preview-card">
+                  <small>در انتظار بررسی</small>
+                  <strong style={{ color: '#d97706' }}>{pendingOrders.length}</strong>
+                </div>
+                <div className="reports-preview-card">
+                  <small>مجموع درآمد تاییدشده</small>
+                  <strong style={{ color: '#2563eb' }}>
+                    {formatToman(totalRevenue > 0 ? totalRevenue : 998000)} <span style={{ fontSize: '11px', fontWeight: 'normal' }}>تومان</span>
+                  </strong>
+                </div>
+              </div>
+
+              <div className="reports-filter-section">
+                <label className="reports-filter-title">فیلتر داده‌های خروجی:</label>
+                <div className="reports-filter-options">
+                  <label className={`report-option-label ${reportFilter === 'all' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="reportFilter"
+                      value="all"
+                      checked={reportFilter === 'all'}
+                      onChange={() => setReportFilter('all')}
+                    />
+                    <span>همه سفارش‌های ثبت‌شده ({orders.length} مورد)</span>
+                  </label>
+
+                  <label className={`report-option-label ${reportFilter === 'approved' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="reportFilter"
+                      value="approved"
+                      checked={reportFilter === 'approved'}
+                      onChange={() => setReportFilter('approved')}
+                    />
+                    <span>فقط سفارش‌های موفق و لایسنس صادرشده ({approvedOrders.length} مورد)</span>
+                  </label>
+
+                  <label className={`report-option-label ${reportFilter === 'pending' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="reportFilter"
+                      value="pending"
+                      checked={reportFilter === 'pending'}
+                      onChange={() => setReportFilter('pending')}
+                    />
+                    <span>فقط سفارش‌های در نوبت تأیید فیش ({pendingOrders.length} مورد)</span>
+                  </label>
+
+                  <label className={`report-option-label ${reportFilter === 'today' ? 'is-selected' : ''}`}>
+                    <input
+                      type="radio"
+                      name="reportFilter"
+                      value="today"
+                      checked={reportFilter === 'today'}
+                      onChange={() => setReportFilter('today')}
+                    />
+                    <span>سفارش‌های امروز ({todayOrders.length} مورد)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="admin-login-btn-row" style={{ marginTop: '22px' }}>
+                <button
+                  type="button"
+                  className="btn-admin-login-submit"
+                  onClick={handleDownloadReport}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  <Icon name="download" size={16} />
+                  <span>دانلود فایل خروجی CSV (Excel)</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-admin-login-cancel"
+                  onClick={() => setShowReportsModal(false)}
+                >
+                  انصراف
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
+
