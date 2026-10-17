@@ -207,20 +207,28 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
           {/* نوار سربرگ بالای داشبورد (Top Bar) */}
           <header className="portal-topbar">
             <div className="portal-topbar__user">
-              {/* منوی بازشونده مشخصات کاربر */}
-              <div className="portal-user-clickable" onClick={() => setShowUserDropdown(!showUserDropdown)}>
+              {/* کپسول شیک و لوکس مشخصات کاربر */}
+              <div
+                className={`portal-user-pill ${showUserDropdown ? 'is-open' : ''}`}
+                onClick={() => {
+                  setShowUserDropdown(!showUserDropdown);
+                  setShowNotifications(false);
+                }}
+                title="منوی حساب کاربری"
+              >
                 <div className="portal-user-avatar">
                   <span>{userInitial}</span>
                 </div>
                 <div className="portal-user-meta">
                   <span className="portal-user-name">{user.fullName || 'کاربر گرامی'}</span>
-                  <span className="portal-dropdown-arrow">▾</span>
+                  <span className="portal-user-sub-badge">عضو ویژه</span>
                 </div>
+                <Icon name="chevron" size={13} className={`portal-chevron-arrow ${showUserDropdown ? 'is-rotated' : ''}`} />
               </div>
 
               {/* دراپ‌داون پروفایل کاربر */}
               {showUserDropdown && (
-                <div className="portal-popover portal-popover--user">
+                <div className="portal-popover portal-dropdown-menu">
                   <div className="popover-user-info">
                     <strong>{user.fullName || 'کاربر گرامی'}</strong>
                     <span className="en">{user.gmail || user.mobile}</span>
@@ -239,21 +247,24 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     <span>سوابق تراکنش‌ها</span>
                   </button>
                   <div className="popover-divider" />
-                  <button type="button" className="popover-item text-danger" onClick={handleLogout}>
+                  <button type="button" className="popover-item popover-item--danger" onClick={handleLogout}>
                     <Icon name="logout" size={15} />
                     <span>خروج از حساب</span>
                   </button>
                 </div>
               )}
 
-              {/* دکمه اعلان‌ها همراه با پاپ‌اور */}
+              {/* دکمه مدرن اعلان‌ها با SVG Bell */}
               <button
                 type="button"
-                className="portal-bell-btn"
+                className={`portal-bell-btn ${showNotifications ? 'is-active' : ''}`}
                 title="اعلان‌ها"
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowUserDropdown(false);
+                }}
               >
-                <span className="bell-icon-inner">🔔</span>
+                <Icon name="bell" size={17} />
                 {pendingOrders.length > 0 && <span className="bell-pulse-dot" />}
               </button>
 
@@ -470,6 +481,33 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     >
                       ویرایش مشخصات حساب کاربری
                     </button>
+                  </div>
+                </div>
+
+                {/* کادر تذکر مهم ابزار تغییر IP و توصیه حیاتی جیمیل با سلب مسئولیت */}
+                <div className="user-dashboard-warning-card">
+                  <div className="user-dashboard-warning__icon">
+                    <Icon name="alert" size={24} />
+                  </div>
+                  <div className="user-dashboard-warning__body">
+                    <div className="warning-entry">
+                      <strong>تذکر اول درباره ابزار تغییر IP معتبر:</strong>
+                      <p>
+                        جهت اتصال امن، فعال‌سازی و بهره‌مندی از امکانات Google One و هوش مصنوعی Gemini Advanced، همیشه از یک ابزار تغییر IP پایدار، باکیفیت و بدون نشت (DNS/WebRTC Leak-Free) استفاده فرمایید.
+                      </p>
+                    </div>
+
+                    <div className="warning-divider" />
+
+                    <div className="warning-entry">
+                      <strong className="text-warning-highlight">⚠️ توصیه فوق‌العاده مهم درباره جیمیل و سلب مسئولیت حقوقی:</strong>
+                      <p>
+                        همان‌طور که مستحضر هستید، اخیراً ساخت اکانت‌های جدید جیمیل در ایران با دشواری‌های زیادی همراه شده و ریسک بالای مسدودی (Disable شدن توسط ربات‌های گوگل) را در پی دارد. <strong>پیشنهاد اکید تیم Gemini Shop:</strong> جهت فعال‌سازی اشتراک، حتماً از یک <strong>جیمیل فرعی و باسابقه (نه جیمیل شخصی و کاری اصلی و نه جیمیل تازه ساخته‌شده)</strong> استفاده فرمایید؛ چرا که اکانت‌های نوپا به سرعت توسط گوگل در ایران بلاک می‌شوند.
+                      </p>
+                      <div className="legal-disclaimer-pill">
+                        ⚖️ <strong>سلب مسئولیت رسمی:</strong> در صورت فعال‌سازی بر روی جیمیل اصلی و شخصی یا اکانت‌های تازه تاسیس و بروز هرگونه مسدودی، تعلیق یا غیرفعال شدن اکانت توسط شرکت گوگل، فروشگاه Gemini Shop هیچ‌گونه مسئولیتی در قبال اکانت جیمیل کاربر به عهده نخواهد داشت.
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -778,8 +816,10 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     <div className="guide-step-item">
                       <div className="step-num-badge">۲</div>
                       <div>
-                        <strong>ورود به اکانت جیمیل اصلی در مرورگر</strong>
-                        <p>مطمئن شوید همان اکانت جیمیل که هنگام خرید ثبت کرده‌اید در مرورگر لاگین باشد تا اشتراک مستقیماً بر روی آن فعال شود.</p>
+                        <strong>ورود به اکانت جیمیل (ترجیحاً جیمیل فرعی و باسابقه)</strong>
+                        <p>
+                          مطمئن شوید همان اکانت جیمیل که می‌خواهید اشتراک روی آن فعال شود در مرورگر لاگین باشد. <strong>توصیه حیاتی:</strong> اکیداً پیشنهاد می‌شود از یک <strong>جیمیل فرعیِ باسابقه</strong> استفاده نمایید و از فعال‌سازی روی جیمیل‌های تازه ساخته‌شده (به دلیل ریسک بالای مسدودی سریع توسط گوگل در ایران) یا اکانت اصلی کاری خودداری فرمایید.
+                        </p>
                       </div>
                     </div>
 
@@ -798,6 +838,17 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                         <p>ظرف چند ثانیه، فضای ۲ ترابایت Google One و نشان Gemini Advanced بر روی اکانت شما فعال خواهد شد.</p>
                       </div>
                     </div>
+                  </div>
+
+                  {/* جعبه سلب مسئولیت و تذکر راهنما */}
+                  <div className="guide-disclaimer-callout">
+                    <div className="disclaimer-callout-head">
+                      <Icon name="alert" size={20} />
+                      <strong>⚠️ تذکر امنیتی و سلب مسئولیت قانونی در انتخاب جیمیل:</strong>
+                    </div>
+                    <p>
+                      ساخت جیمیل جدید در ایران با حساسیت‌های شدید گوگل روبروست و جیمیل‌های نوپا سریعاً توسط گوگل مسدود (Disable) می‌شوند. ترجیح و توصیه کاربردی تیم Gemini Shop فعال‌سازی لایسنس روی اکانت فرعی باسابقه است. توجه داشته باشید در صورت فعال‌سازی روی جیمیل شخصی اصلی و بروز مسدودی توسط گوگل، مجموعه ما هیچ‌گونه مسئولیتی در قبال وضعیت اکانت متقبل نخواهد شد.
+                    </p>
                   </div>
                 </div>
               </div>

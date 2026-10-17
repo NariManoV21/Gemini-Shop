@@ -643,31 +643,33 @@ export function AdminPanel({ open, onClose }: Props) {
           <header className="portal-topbar">
             <div className="portal-topbar__user" style={{ position: 'relative' }}>
               <div
-                className="portal-user-meta portal-user-clickable"
+                className={`portal-user-pill ${showAdminDropdown ? 'is-open' : ''}`}
                 onClick={() => {
                   setShowAdminDropdown(!showAdminDropdown);
                   setShowAdminNotifications(false);
                 }}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                title="منوی کاربری مدیر"
+                title="منوی مدیریت"
               >
-                <div className="portal-user-avatar">
+                <div className="portal-user-avatar portal-user-avatar--admin">
                   <span>A</span>
                 </div>
-                <span className="portal-user-name">مدیر</span>
-                <span className="portal-dropdown-arrow">▾</span>
+                <div className="portal-user-meta">
+                  <span className="portal-user-name">مدیر سیستم</span>
+                  <span className="portal-user-sub-badge portal-user-sub-badge--admin">Admin</span>
+                </div>
+                <Icon name="chevron" size={13} className={`portal-chevron-arrow ${showAdminDropdown ? 'is-rotated' : ''}`} />
               </div>
 
               <button
                 type="button"
-                className="portal-bell-btn"
+                className={`portal-bell-btn ${showAdminNotifications ? 'is-active' : ''}`}
                 title="اعلان‌های زنده مدیریت"
                 onClick={() => {
                   setShowAdminNotifications(!showAdminNotifications);
                   setShowAdminDropdown(false);
                 }}
               >
-                <span className="bell-icon-inner">🔔</span>
+                <Icon name="bell" size={17} />
                 {pendingOrders.length > 0 && <span className="bell-pulse-dot" />}
               </button>
 
