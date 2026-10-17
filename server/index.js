@@ -24,27 +24,37 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3001;
-const DATA_FILE = path.join(__dirname, 'gemini_store_data.json');
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'gemini_store_data.json');
 const MAX_PAYLOAD_BYTES = 100 * 1024; // حداکثر ۱۰۰ کیلوبایت برای جلوگیری از DoS
+const BODY_TIMEOUT_MS = 10000; // مهلت ۱۰ ثانیه‌ای جهت مقابله با حملات Slowloris
 
-// حافظه توکن‌های فعال نشست ادمین: Map<token, { id, username, fullName, role }>
-const activeAdminSessions = new Map([
-  [
-    'gemini_admin_session_token',
-    {
-      id: 'adm_head_1',
-      username: 'admin',
-      fullName: 'نریمان موذنی (مدیر ارشد)',
-      role: 'head_admin',
-    },
-  ],
-]);
+// حافظه توکن‌های فعال نشست ادمین: Map<token, { id, username, fullName, role, expiresAt }>
+// کاملاً بدون توکن پیش‌فرض هاردکد شده جهت جلوگیری از نفوذ
+const activeAdminSessions = new Map();
 
 // حافظه موقت کدهای تأیید ایمیلی OTP در سرور: Map<email, { code, expiresAt, lastSentAt, attempts, fullName, mobile }>
 const activeOtpStore = new Map();
 
 // حافظه موقت Rate Limiter بر اساس IP
 const ipRequestHistory = new Map();
+
+// حافظه موقت حفاظت از حملات Brute Force برای لاگین ادمین
+const loginAttemptsHistory = new Map();
+
+// استخراج امن آی‌پی واقعی کلاینت از پشت پروکسی‌ها و کلادفلر
+function getClientIp(req) {
+  if (req.headers['cf-connecting-ip']) {
+    return String(req.headers['cf-connecting-ip']).trim();
+  }
+  if (req.headers['x-forwarded-for']) {
+    const ips = String(req.headers['x-forwarded-for']).split(',');
+    return ips[0].trim();
+  }
+  if (req.headers['x-real-ip']) {
+    return String(req.headers['x-real-ip']).trim();
+  }
+  return req.socket?.remoteAddress || '127.0.0.1';
+}
 
 function checkRateLimit(ip, maxRequests = 120, windowMs = 60000) {
   const now = Date.now();
@@ -60,13 +70,69 @@ function checkRateLimit(ip, maxRequests = 120, windowMs = 60000) {
   return true;
 }
 
+// بررسی وضعیت قفل موقت ورود ادمین بر اساس آی‌پی یا نام‌کاربری
+function checkLoginLockout(key) {
+  const now = Date.now();
+  const record = loginAttemptsHistory.get(key);
+  if (record && record.lockedUntil && now < record.lockedUntil) {
+    const remainingMinutes = Math.ceil((record.lockedUntil - now) / 60000);
+    return { isLocked: true, remainingMinutes };
+  }
+  return { isLocked: false, remainingMinutes: 0 };
+}
+
+function recordFailedLogin(key) {
+  const now = Date.now();
+  const record = loginAttemptsHistory.get(key) || { count: 0, lockedUntil: 0 };
+  record.count += 1;
+  if (record.count >= 5) {
+    record.lockedUntil = now + 15 * 60 * 1000; // قفل ۱۵ دقیقه‌ای در صورت ۵ تلاش ناموفق
+    record.count = 0;
+  }
+  loginAttemptsHistory.set(key, record);
+}
+
+function clearFailedLogin(key) {
+  loginAttemptsHistory.delete(key);
+}
+
+// هش‌گذاری امن رمز عبور با سالت تصادفی و الگوریتم PBKDF2 با ۱۰۰,۰۰۰ دور (استاندارد NIST)
+function hashPasswordSalted(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const derived = crypto.pbkdf2Sync(String(password), salt, 100000, 64, 'sha512').toString('hex');
+  return `pbkdf2:${salt}:${derived}`;
+}
+
+// بررسی زمان‌ثابت رمز عبور (Timing-Safe) با پشتیبانی ارتقای خودکار
+function verifyPasswordSecure(password, stored) {
+  if (!password || !stored) return false;
+  try {
+    if (typeof stored === 'string' && stored.startsWith('pbkdf2:')) {
+      const parts = stored.split(':');
+      const salt = parts[1];
+      const targetHash = parts[2];
+      const computed = crypto.pbkdf2Sync(String(password), salt, 100000, 64, 'sha512').toString('hex');
+      return crypto.timingSafeEqual(Buffer.from(computed, 'utf8'), Buffer.from(targetHash, 'utf8'));
+    }
+    // پشتیبانی سازگار با هش‌های اولیه sha256
+    const inputHash = crypto.createHash('sha256').update(String(password)).digest('hex');
+    const targetHash = stored.length === 64
+      ? stored
+      : crypto.createHash('sha256').update(String(stored)).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(inputHash, 'utf8'), Buffer.from(targetHash, 'utf8'));
+  } catch (err) {
+    console.error('Password verification exception:', err);
+    return false;
+  }
+}
+
 // ساختار اولیه دیتابیس در صورت عدم وجود
+const initialAdminPass = process.env.ADMIN_PASSWORD || 'admin123';
 const defaultData = {
   orders: [],
   chatMessages: [],
   users: [],
   settings: {
-    adminPassword: process.env.ADMIN_PASSWORD || 'admin123',
+    adminPassword: hashPasswordSalted(initialAdminPass),
     priceToman: 499000,
     smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
     smtpPort: Number(process.env.SMTP_PORT) || 465,
@@ -77,7 +143,7 @@ const defaultData = {
     {
       id: 'adm_head_1',
       username: 'admin',
-      passwordHash: crypto.createHash('sha256').update('admin123').digest('hex'),
+      passwordHash: hashPasswordSalted(initialAdminPass),
       fullName: 'نریمان موذنی (مدیر ارشد)',
       role: 'head_admin',
       createdAt: new Date().toISOString(),
@@ -88,7 +154,7 @@ const defaultData = {
 function loadDatabase() {
   try {
     if (!fs.existsSync(DATA_FILE)) {
-      fs.writeFileSync(DATA_FILE, JSON.stringify(defaultData, null, 2), 'utf8');
+      saveDatabase(defaultData);
       return defaultData;
     }
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
@@ -107,11 +173,17 @@ function loadDatabase() {
   }
 }
 
+// ذخیره‌سازی اتمیک (Atomic File Write) برای جلوگیری از خرابی داده در قطعی ناگهانی
 function saveDatabase(data) {
+  const tempFile = `${DATA_FILE}.tmp.${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(tempFile, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tempFile, DATA_FILE);
   } catch (err) {
-    console.error('Error writing database file:', err);
+    console.error('Error writing database file atomically:', err);
+    try {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    } catch {}
   }
 }
 
@@ -167,20 +239,6 @@ function parseRequestBody(req) {
   });
 }
 
-// ارسال پاسخ استاندارد به همراه تمام هدرهای امنیتی
-function sendJson(res, statusCode, data) {
-  res.writeHead(statusCode, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-    'Referrer-Policy': 'strict-origin-when-cross-origin',
-  });
-  res.end(JSON.stringify(data));
-}
 
 /**
  * پیاده‌سازی سبک و فوق‌سریع ارسال ایمیل پروتکل SMTP با TLS بومی Node.js
@@ -374,25 +432,68 @@ async function sendGmailOtp(email, fullName, code, settings) {
   }
 }
 
-// بررسی امن رمز عبور ادمین با مقایسه با زمان ثابت (Timing-Safe)
-function verifyAdminPassword(inputPassword, storedHashOrPlain) {
-  if (!inputPassword || !storedHashOrPlain) return false;
-  const inputHash = crypto.createHash('sha256').update(String(inputPassword)).digest('hex');
-  const targetHash = storedHashOrPlain.length === 64
-    ? storedHashOrPlain
-    : crypto.createHash('sha256').update(String(storedHashOrPlain)).digest('hex');
+// تولید هدرهای امنیتی CORS و HTTP
+function getCorsHeaders(req) {
+  const origin = req.headers.origin;
+  const allowedEnv = process.env.ALLOWED_ORIGINS;
+  let allowOrigin = '*';
 
-  const b1 = Buffer.from(inputHash, 'utf8');
-  const b2 = Buffer.from(targetHash, 'utf8');
-  return crypto.timingSafeEqual(b1, b2);
+  if (allowedEnv && origin) {
+    const list = allowedEnv.split(',').map((o) => o.trim().toLowerCase());
+    if (list.includes('*') || list.includes(origin.toLowerCase())) {
+      allowOrigin = origin;
+    } else {
+      allowOrigin = 'null';
+    }
+  }
+
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  };
 }
 
-// استخراج اطلاعات ادمین احراز هویت شده از هدر Authorization
+// ارسال پاسخ استاندارد به همراه تمام هدرهای امنیتی
+function sendJson(res, statusCode, data, req) {
+  const headers = req ? getCorsHeaders(req) : {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+  };
+
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json; charset=utf-8',
+    ...headers,
+  });
+  res.end(JSON.stringify(data));
+}
+
+// استخراج اطلاعات ادمین احراز هویت شده از هدر Authorization با اعتبارسنجی انقضا
 function getAuthenticatedAdmin(req) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   if (!token) return null;
-  return activeAdminSessions.get(token) || null;
+
+  const session = activeAdminSessions.get(token);
+  if (!session) return null;
+
+  // بررسی انقضای نشست (۲۴ ساعت)
+  if (session.expiresAt && Date.now() > session.expiresAt) {
+    activeAdminSessions.delete(token);
+    return null;
+  }
+
+  return session;
 }
 
 function isAuthorizedAdmin(req) {
@@ -407,20 +508,16 @@ function isHeadAdmin(req) {
 const server = http.createServer(async (req, res) => {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    });
+    res.writeHead(204, getCorsHeaders(req));
     return res.end();
   }
 
-  const clientIp = req.socket.remoteAddress || 'unknown';
+  const clientIp = getClientIp(req);
   if (!checkRateLimit(clientIp, 120, 60000)) {
-    return sendJson(res, 429, { error: 'تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی صبر فرمایید.' });
+    return sendJson(res, 429, { error: 'تعداد درخواست‌ها بیش از حد مجاز است. لطفاً کمی صبر فرمایید.' }, req);
   }
 
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = url.pathname;
   const db = loadDatabase();
 
@@ -744,21 +841,34 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 201, newMsg);
     }
 
-    // ۱۰. ورود امن ادمین با نام کاربری، رمز عبور و نقش (RBAC Login)
+    // ۱۰. ورود امن ادمین با نام کاربری، رمز عبور و نقش (RBAC Login با محافظت Brute Force)
     if (pathname === '/api/admin/login' && req.method === 'POST') {
+      const lockoutIp = checkLoginLockout(clientIp);
+      if (lockoutIp.isLocked) {
+        return sendJson(res, 429, { error: `به دلیل تلاش‌های ناموفق مکرر، دسترسی شما موقتاً به مدت ${lockoutIp.remainingMinutes} دقیقه قفل شده است.` }, req);
+      }
+
       const body = await parseRequestBody(req);
       const username = (body.username || 'admin').trim().toLowerCase();
       const password = body.password || '';
 
+      const lockoutUser = checkLoginLockout(username);
+      if (lockoutUser.isLocked) {
+        return sendJson(res, 429, { error: `حساب کاربری ${username} به دلیل تلاش‌های ناموفق متوالی موقتاً به مدت ${lockoutUser.remainingMinutes} دقیقه قفل است.` }, req);
+      }
+
       const matchedAdmin = db.admins.find((a) => a.username.toLowerCase() === username);
 
-      if (matchedAdmin && verifyAdminPassword(password, matchedAdmin.passwordHash)) {
+      if (matchedAdmin && verifyPasswordSecure(password, matchedAdmin.passwordHash)) {
+        clearFailedLogin(clientIp);
+        clearFailedLogin(username);
         const token = `adm_${crypto.randomBytes(24).toString('hex')}`;
         const sessionData = {
           id: matchedAdmin.id,
           username: matchedAdmin.username,
           fullName: matchedAdmin.fullName,
           role: matchedAdmin.role || 'regular_admin',
+          expiresAt: Date.now() + 24 * 3600 * 1000,
         };
 
         activeAdminSessions.set(token, sessionData);
@@ -768,17 +878,20 @@ const server = http.createServer(async (req, res) => {
           token,
           admin: sessionData,
           expiresIn: '24h',
-        });
+        }, req);
       }
 
       // سازگاری پشتیبان برای پسورد کلی پیشین در صورتی که کاربر نام‌کاربری وارد نکرده باشد
-      if (username === 'admin' && verifyAdminPassword(password, db.settings.adminPassword)) {
+      if (username === 'admin' && verifyPasswordSecure(password, db.settings.adminPassword)) {
+        clearFailedLogin(clientIp);
+        clearFailedLogin(username);
         const token = `adm_${crypto.randomBytes(24).toString('hex')}`;
         const headAdmin = {
           id: db.admins[0]?.id || 'adm_head_1',
           username: db.admins[0]?.username || 'admin',
           fullName: db.admins[0]?.fullName || 'مدیر ارشد فروشگاه',
           role: 'head_admin',
+          expiresAt: Date.now() + 24 * 3600 * 1000,
         };
         activeAdminSessions.set(token, headAdmin);
         return sendJson(res, 200, {
@@ -786,10 +899,12 @@ const server = http.createServer(async (req, res) => {
           token,
           admin: headAdmin,
           expiresIn: '24h',
-        });
+        }, req);
       }
 
-      return sendJson(res, 401, { success: false, error: 'نام کاربری یا رمز عبور اشتباه است.' });
+      recordFailedLogin(clientIp);
+      recordFailedLogin(username);
+      return sendJson(res, 401, { success: false, error: 'نام کاربری یا رمز عبور اشتباه است.' }, req);
     }
 
     // ۱۱. دریافت اطلاعات هویت ادمین فعال
@@ -842,7 +957,7 @@ const server = http.createServer(async (req, res) => {
       const newAdmin = {
         id: `adm_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
         username: cleanUsername,
-        passwordHash: crypto.createHash('sha256').update(cleanPassword).digest('hex'),
+        passwordHash: hashPasswordSalted(cleanPassword),
         fullName: cleanFullName || cleanUsername,
         role,
         createdAt: new Date().toISOString(),

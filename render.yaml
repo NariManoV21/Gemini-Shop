@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: gemini-shop-backend
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: "npm install"
+    startCommand: "npm run server"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATA_FILE
+        value: /var/data/gemini_store_data.json
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+    disk:
+      name: gemini-data
+      mountPath: /var/data
+      sizeGB: 1

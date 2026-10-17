@@ -31,13 +31,13 @@ export interface AdminUser {
   createdAt?: string;
 }
 
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
 
 export function AdminPanel({ open, onClose }: Props) {
   useBodyScrollLock(open);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
-  const [adminToken, setAdminToken] = useState<string>('gemini_admin_session_token');
+  const [adminToken, setAdminToken] = useState<string>('');
 
   // فرم ورود
   const [username, setUsername] = useState('admin');
@@ -93,7 +93,7 @@ export function AdminPanel({ open, onClose }: Props) {
   // بررسی نشست لاگین قبلی از sessionStorage
   useEffect(() => {
     const savedAuth = sessionStorage.getItem('gemini_admin_auth') === 'true';
-    const savedToken = sessionStorage.getItem('gemini_admin_token') || 'gemini_admin_session_token';
+    const savedToken = sessionStorage.getItem('gemini_admin_token') || '';
     const savedUserRaw = sessionStorage.getItem('gemini_admin_user');
 
     if (savedAuth) {

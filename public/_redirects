@@ -1,1 +1,7 @@
+# Block sensitive files and dotfiles
+/.env* /index.html 404
+/.git* /index.html 404
+/gemini_store_data.json /index.html 404
+
+# SPA Fallback for Cloudflare Pages
 /* /index.html 200

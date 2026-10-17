@@ -1,4 +1,38 @@
+# Dependencies
 node_modules
+.pnp
+.pnp.js
+
+# Build outputs & caches
 dist
+dist-ssr
 *.local
+.cache
+.vite
+
+# Operating System & IDE
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables & secrets (CRITICAL: Never commit to Git)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+.github_token
+scripts/.github_token
+
+# Local Database & data files (Prevent customer data leak)
+gemini_store_data.json
+server/gemini_store_data.json
+server/*.tmp*
+
+# Release zip archives
+*.zip
+

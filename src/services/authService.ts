@@ -15,7 +15,7 @@ export interface UserProfile {
 }
 
 const AUTH_STORAGE_KEY = 'gemini_customer_profile_v1';
-const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
 
 /**
  * دریافت مشخصات مشتری جاری از حافظه محلی
