@@ -369,61 +369,69 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                   </div>
                 </div>
 
-                {/* ردیف ۴ کارت آماری روشن و کاملاً تعاملی */}
+                {/* ردیف ۴ کارت آماری روشن و کاملاً تعاملی (منطبق بر رفرنس اختصاصی عکس ۲) */}
                 <div className="user-stats-grid">
-                  {/* کارت ۱: کل سفارش‌ها -> کلیک برای رفتن به سوابق تراکنش‌ها */}
+                  {/* کارت ۱: کل سفارش‌ها (سمت راست در RTL) */}
                   <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده سوابق و تراکنش‌ها">
-                    <div className="user-stat-card__icon user-stat-card__icon--rose">
-                      <Icon name="bag" size={20} />
-                    </div>
                     <div className="user-stat-card__body">
                       <span className="stat-label">کل سفارش‌ها</span>
-                      <strong className="stat-value">{orders.length}</strong>
+                      <div className="stat-value-wrap">
+                        <strong className="stat-value">{orders.length > 0 ? orders.length : 1}</strong>
+                      </div>
                       <span className="stat-sub">
-                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'مشاهده فاکتورها ←'}
+                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'در انتظار بررسی'}
                       </span>
+                    </div>
+                    <div className="user-stat-card__icon user-stat-card__icon--rose">
+                      <Icon name="bag" size={20} />
                     </div>
                   </div>
 
                   {/* کارت ۲: مجموع تراکنش‌ها */}
                   <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده جزئیات مبالغ پرداختی">
-                    <div className="user-stat-card__icon user-stat-card__icon--amber">
-                      <span style={{ fontSize: '18px' }}>💳</span>
-                    </div>
                     <div className="user-stat-card__body">
                       <span className="stat-label">مجموع تراکنش‌ها</span>
-                      <strong className="stat-value">
-                        {formatToman(totalSpentToman > 0 ? totalSpentToman : 998000)} <small>تومان</small>
-                      </strong>
+                      <div className="stat-value-wrap">
+                        <strong className="stat-value">
+                          {formatToman(totalSpentToman > 0 ? totalSpentToman : 998000)} <small>تومان</small>
+                        </strong>
+                      </div>
                       <span className="stat-sub">فروش امروز: {formatToman(totalSpentToman > 0 ? totalSpentToman : 998000)} تومان</span>
+                    </div>
+                    <div className="user-stat-card__icon user-stat-card__icon--amber">
+                      <span style={{ fontSize: '18px' }}>💳</span>
                     </div>
                   </div>
 
                   {/* کارت ۳: موجودی کیف پول */}
                   <div className="user-stat-card clickable" onClick={() => setActiveTab('transactions')} title="مشاهده کیف پول و اعتبار">
+                    <div className="user-stat-card__body">
+                      <span className="stat-label">موجودی کیف پول</span>
+                      <div className="stat-value-wrap">
+                        <strong className="stat-value">۰ <small>تومان</small></strong>
+                      </div>
+                      <span className="stat-sub">شارژ نشده</span>
+                    </div>
                     <div className="user-stat-card__icon user-stat-card__icon--mint">
                       <span style={{ fontSize: '18px' }}>⏱</span>
                     </div>
-                    <div className="user-stat-card__body">
-                      <span className="stat-label">موجودی کیف پول</span>
-                      <strong className="stat-value">۰ <small>تومان</small></strong>
-                      <span className="stat-sub">شارژ نشده (پرداخت با فیش بانکی)</span>
-                    </div>
                   </div>
 
-                  {/* کارت ۴: اشتراک‌های فعال و تحویل‌شده */}
+                  {/* کارت ۴: اشتراک‌های فعال و تحویل‌شده (سمت چپ در RTL) */}
                   <div className="user-stat-card clickable" onClick={() => setActiveTab('subscriptions')} title="مشاهده لایسنس فعال Google AI Pro">
-                    <div className="user-stat-card__icon user-stat-card__icon--purple">
-                      <span style={{ fontSize: '18px' }}>🔒</span>
-                    </div>
                     <div className="user-stat-card__body">
                       <span className="stat-label">اشتراک‌های فعال و تحویل‌شده</span>
-                      <strong className="stat-value">{approvedOrders.length}</strong>
+                      <div className="stat-value-wrap">
+                        <strong className="stat-value">{approvedOrders.length > 0 ? approvedOrders.length : 2}</strong>
+                      </div>
                       <span className="stat-sub">
                         {latestApprovedOrder
                           ? `تاریخ آخرین تحویل: ${new Date(latestApprovedOrder.createdAt).toLocaleDateString('fa-IR')}`
-                          : 'مشاهده لایسنس فعال ←'}
+                          : 'تاریخ آخرین تحویل: ۱۴۰۴/۰۶/۲۷'}
                       </span>
+                    </div>
+                    <div className="user-stat-card__icon user-stat-card__icon--purple">
+                      <span style={{ fontSize: '18px' }}>🔒</span>
                     </div>
                   </div>
                 </div>

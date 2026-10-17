@@ -880,47 +880,27 @@ export function AdminPanel({ open, onClose }: Props) {
             {activeTab === 'dashboard' && (
               <div className="admin-dashboard-view">
                 
-                {/* ردیف ۴ کارت تیره آمار تعاملی (Dark Navy/Slate Stat Cards) */}
+                {/* ردیف ۴ کارت تیره آمار تعاملی (Dark Navy/Slate Stat Cards - دقیقاً مطابق رفرنس عکس ۱) */}
                 <div className="admin-dark-stats-grid">
-                  {/* کارت ۱: کل سفارش‌های مشتریان (سمت چپ در چیدمان RTL) */}
+                  {/* کارت ۱: مجموع درآمد حقیقی/روزانه (سمت راست در چیدمان RTL) */}
                   <div
                     className="admin-dark-stat-card admin-stat-card--interactive"
-                    onClick={() => {
-                      setActiveTab('orders');
-                      setStatusFilter('all');
-                    }}
-                    title="کلیک برای مشاهده تمام سفارش‌ها"
+                    onClick={() => setShowReportsModal(true)}
+                    title="کلیک برای گزارش‌گیری مالی و خروجی فایل اکسل"
                   >
-                    <div className="admin-dark-stat__icon admin-dark-stat__icon--purple">
-                      <Icon name="headset" size={20} />
-                    </div>
                     <div className="admin-dark-stat__info">
-                      <span className="dark-stat-label">کل سفارش‌های مشتریان</span>
-                      <strong className="dark-stat-value">{orders.length > 0 ? orders.length : 1}</strong>
-                      <span className="dark-stat-sub">در حال پردازش: {pendingOrders.length} سفارش</span>
+                      <span className="dark-stat-label">مجموع درآمد حقیقی/روزانه</span>
+                      <strong className="dark-stat-value">
+                        {formatToman(totalRevenue > 0 ? totalRevenue : 998000)} <small>تومان</small>
+                      </strong>
+                      <span className="dark-stat-sub">فروش امروز: {formatToman(todayRevenue > 0 ? todayRevenue : 998000)} تومان</span>
+                    </div>
+                    <div className="admin-dark-stat__icon admin-dark-stat__icon--teal">
+                      <span style={{ fontSize: '20px' }}>✦</span>
                     </div>
                   </div>
 
-                  {/* کارت ۲: اکانت‌های فعال و تحویل‌شده */}
-                  <div
-                    className="admin-dark-stat-card admin-stat-card--interactive"
-                    onClick={() => {
-                      setActiveTab('orders');
-                      setStatusFilter('approved');
-                    }}
-                    title="کلیک برای مشاهده سفارش‌های تأیید و تحویل‌شده"
-                  >
-                    <div className="admin-dark-stat__icon admin-dark-stat__icon--emerald">
-                      <Icon name="check" size={20} />
-                    </div>
-                    <div className="admin-dark-stat__info">
-                      <span className="dark-stat-label">اکانت‌های فعال و تحویل‌شده</span>
-                      <strong className="dark-stat-value">{approvedOrders.length > 0 ? approvedOrders.length : 2}</strong>
-                      <span className="dark-stat-sub">نرخ موفقیت: ۱۰۰٪</span>
-                    </div>
-                  </div>
-
-                  {/* کارت ۳: فروش‌های در انتظار بررسی */}
+                  {/* کارت ۲: فروش‌های در انتظار بررسی */}
                   <div
                     className="admin-dark-stat-card admin-stat-card--interactive"
                     onClick={() => {
@@ -929,31 +909,51 @@ export function AdminPanel({ open, onClose }: Props) {
                     }}
                     title="کلیک برای بررسی سفارش‌های در انتظار تایید فیش"
                   >
-                    <div className="admin-dark-stat__icon admin-dark-stat__icon--amber">
-                      <span style={{ fontSize: '20px' }}>⏱</span>
-                    </div>
                     <div className="admin-dark-stat__info">
                       <span className="dark-stat-label">فروش‌های در انتظار بررسی</span>
                       <strong className="dark-stat-value">{pendingOrders.length}</strong>
                       <span className="dark-stat-sub">تا سفارشات امروز: {todayOrders.length} مورد</span>
                     </div>
+                    <div className="admin-dark-stat__icon admin-dark-stat__icon--amber">
+                      <span style={{ fontSize: '20px' }}>⏱</span>
+                    </div>
                   </div>
 
-                  {/* کارت ۴: مجموع درآمد حقیقی/روزانه (سمت راست در چیدمان RTL) */}
+                  {/* کارت ۳: اکانت‌های فعال و تحویل‌شده */}
                   <div
                     className="admin-dark-stat-card admin-stat-card--interactive"
-                    onClick={() => setShowReportsModal(true)}
-                    title="کلیک برای گزارش‌گیری مالی و خروجی فایل اکسل"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('approved');
+                    }}
+                    title="کلیک برای مشاهده سفارش‌های تأیید و تحویل‌شده"
                   >
-                    <div className="admin-dark-stat__icon admin-dark-stat__icon--teal">
-                      <span style={{ fontSize: '20px' }}>✦</span>
-                    </div>
                     <div className="admin-dark-stat__info">
-                      <span className="dark-stat-label">مجموع درآمد حقیقی/روزانه</span>
-                      <strong className="dark-stat-value">
-                        {formatToman(totalRevenue > 0 ? totalRevenue : 998000)} <small>تومان</small>
-                      </strong>
-                      <span className="dark-stat-sub">فروش امروز: {formatToman(todayRevenue > 0 ? todayRevenue : 998000)} تومان</span>
+                      <span className="dark-stat-label">اکانت‌های فعال و تحویل‌شده</span>
+                      <strong className="dark-stat-value">{approvedOrders.length > 0 ? approvedOrders.length : 2}</strong>
+                      <span className="dark-stat-sub">نرخ موفقیت: ۱۰۰٪</span>
+                    </div>
+                    <div className="admin-dark-stat__icon admin-dark-stat__icon--emerald">
+                      <Icon name="check" size={20} />
+                    </div>
+                  </div>
+
+                  {/* کارت ۴: کل سفارش‌های مشتریان (سمت چپ در چیدمان RTL) */}
+                  <div
+                    className="admin-dark-stat-card admin-stat-card--interactive"
+                    onClick={() => {
+                      setActiveTab('orders');
+                      setStatusFilter('all');
+                    }}
+                    title="کلیک برای مشاهده تمام سفارش‌ها"
+                  >
+                    <div className="admin-dark-stat__info">
+                      <span className="dark-stat-label">کل سفارش‌های مشتریان</span>
+                      <strong className="dark-stat-value">{orders.length > 0 ? orders.length : 1}</strong>
+                      <span className="dark-stat-sub">در حال پردازش: {pendingOrders.length} سفارش</span>
+                    </div>
+                    <div className="admin-dark-stat__icon admin-dark-stat__icon--purple">
+                      <Icon name="headset" size={20} />
                     </div>
                   </div>
                 </div>
