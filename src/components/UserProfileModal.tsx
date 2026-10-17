@@ -86,20 +86,20 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
           <div className="profile-user-summary">
             <div className="profile-avatar-wrap">
               <span className="profile-avatar-char">{user.fullName ? user.fullName.slice(0, 1) : 'گ'}</span>
-              <span className="profile-avatar-dot" title="حساب فعال" />
             </div>
 
             <div className="profile-meta">
               <div className="profile-meta__title-row">
                 <h3 id="profile-title">{user.fullName || 'کاربر گرامی'}</h3>
-                <span className="profile-badge-tier">
-                  <Icon name="shield" size={13} />
-                  <span>مشتری تأییدشده</span>
-                </span>
-                {approvedOrders.length > 0 && (
-                  <span className="profile-badge-active">
-                    <Icon name="sparkle" size={12} />
+                {approvedOrders.length > 0 ? (
+                  <span className="profile-badge-status profile-badge-status--active">
+                    <Icon name="check" size={12} />
                     <span>اشتراک فعال</span>
+                  </span>
+                ) : (
+                  <span className="profile-badge-status profile-badge-status--verified">
+                    <Icon name="shield" size={12} />
+                    <span>حساب تأییدشده</span>
                   </span>
                 )}
               </div>
@@ -120,7 +120,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
             </div>
           </div>
 
-          {/* تنها یک دکمه بستن شفاف در گوشه کادر، بدون هیچ دکمه خروج مزاحم */}
+          {/* تنها یک دکمه بستن در گوشه کادر، با عنوان صریح و بدون تداخل با خروج */}
           <button
             type="button"
             className="profile-modal__close-btn"
@@ -245,7 +245,8 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     <h4>تاریخچه و وضعیت سفارشات ({orders.length} مورد)</h4>
                     {pendingOrders.length > 0 && (
                       <span className="pending-alert-badge">
-                        <span className="pulse-dot" /> {pendingOrders.length} سفارش در حال بررسی
+                        <Icon name="clock" size={13} />
+                        <span>{pendingOrders.length} سفارش در حال بررسی فیش</span>
                       </span>
                     )}
                   </div>

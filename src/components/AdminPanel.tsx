@@ -565,7 +565,8 @@ export function AdminPanel({ open, onClose }: Props) {
                     isHead ? 'admin-role-badge--head' : 'admin-role-badge--regular'
                   }`}
                 >
-                  {isHead ? '👑 مدیر ارشد سایت' : '🛡️ ادمین فروش و سفارشات'}
+                  <Icon name={isHead ? 'shield' : 'user'} size={12} />
+                  <span>{isHead ? 'مدیر ارشد سیستم' : 'ادمین فروش و سفارشات'}</span>
                 </span>
               </div>
               <span className="admin-header__live-tag">
@@ -1036,7 +1037,8 @@ export function AdminPanel({ open, onClose }: Props) {
                                 isHeadRole ? 'admin-role-badge--head' : 'admin-role-badge--regular'
                               }`}
                             >
-                              {isHeadRole ? '👑 مدیر ارشد (Head Admin)' : '🛡️ ادمین فروش (Orders & Chat)'}
+                              <Icon name={isHeadRole ? 'shield' : 'user'} size={12} />
+                              <span>{isHeadRole ? 'مدیر ارشد (Head Admin)' : 'ادمین فروش (Orders & Chat)'}</span>
                             </span>
                           </td>
                           <td>
@@ -1137,10 +1139,10 @@ export function AdminPanel({ open, onClose }: Props) {
                           }}
                         >
                           <option value="regular_admin">
-                            🛡️ ادمین فروش (فقط دسترسی به مدیریت سفارشات، فیش‌ها و چت آنلاین)
+                            ادمین فروش (دسترسی به سفارش‌ها، فیش‌ها و چت آنلاین)
                           </option>
                           <option value="head_admin">
-                            👑 مدیر ارشد (دسترسی کامل به مدیریت ادمین‌ها، تنظیمات و کل بخش‌ها)
+                            مدیر ارشد (دسترسی کامل به مدیریت سیستم، ادمین‌ها و تنظیمات)
                           </option>
                         </select>
                       </div>

@@ -184,9 +184,9 @@
 
 @media (max-width: 960px) {
   .header {
-    background: rgba(246, 245, 252, 0.78);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+    box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.08);
   }
 
   .header__burger {
