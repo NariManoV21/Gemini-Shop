@@ -77,8 +77,8 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: #fff1f2;
-  color: #e11d48;
+  background: #eef2ff;
+  color: #4f46e5;
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -87,7 +87,7 @@
 .brand-gemini-sparkle {
   font-size: 20px;
   line-height: 1;
-  color: #db2777;
+  color: #6366f1;
 }
 
 .portal-sidebar__brand-text strong {
@@ -136,9 +136,9 @@
 }
 
 .sidebar-nav-item.is-active {
-  background: #fff1f2;
-  color: #e11d48;
-  border-color: #ffe4e6;
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
 }
 
 .sidebar-nav-icon {
@@ -154,8 +154,20 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
-  background: #e11d48;
+  background: #4f46e5;
   color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-badge-amber {
+  margin-inline-start: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
   font-variant-numeric: tabular-nums;
 }
 
@@ -317,16 +329,16 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #e11d48;
+  background: #4f46e5;
   border: 1.5px solid #ffffff;
-  box-shadow: 0 0 6px rgba(225, 29, 72, 0.6);
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.6);
   animation: bellPulse 1.8s infinite;
 }
 
 @keyframes bellPulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
-  70% { transform: scale(1.15); box-shadow: 0 0 0 5px rgba(225, 29, 72, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
+  70% { transform: scale(1.15); box-shadow: 0 0 0 5px rgba(79, 70, 229, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
 }
 
 .portal-topbar__links {
@@ -336,21 +348,23 @@
 }
 
 .topbar-cta-pill {
-  padding: 7px 16px;
+  padding: 7px 18px;
   border-radius: 999px;
-  background: #fff1f2;
-  border: 1px solid #ffe4e6;
-  color: #e11d48;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+  border: 1px solid #3730a3;
+  color: #ffffff;
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
   transition: all 0.15s ease;
 }
 
 .topbar-cta-pill:hover {
-  background: #ffe4e6;
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 .topbar-link-btn {
@@ -410,11 +424,11 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #fff1f2;
-  color: #e11d48;
+  background: #eef2ff;
+  color: #4f46e5;
   display: grid;
   place-items: center;
-  border: 1px solid #ffe4e6;
+  border: 1px solid #c7d2fe;
 }
 
 .dashboard-header-title h2 {
@@ -522,8 +536,8 @@
 }
 
 .user-stat-card__icon--rose {
-  background: #fff1f2;
-  color: #e11d48;
+  background: #eef2ff;
+  color: #4f46e5;
 }
 
 .user-stat-card__icon--amber {
@@ -548,16 +562,17 @@
   gap: 18px;
 }
 
-/* بنر ارتقا و مدیریت اشتراک (Pink Aurora Card) */
+/* بنر ارتقا و مدیریت اشتراک (Blue-Violet Indigo Aurora Card) */
 .user-aurora-card {
   position: relative;
-  background: linear-gradient(135deg, #fff1f2 0%, #fdf2f8 55%, #f5f3ff 100%);
-  border: 1px solid #fce7f3;
+  background: linear-gradient(135deg, #eff6ff 0%, #eef2ff 50%, #f5f3ff 100%);
+  border: 1px solid #c7d2fe;
   border-radius: 20px;
   padding: 26px 28px;
   overflow: hidden;
   display: flex;
   align-items: center;
+  box-shadow: 0 4px 18px -4px rgba(79, 70, 229, 0.08);
 }
 
 .aurora-sparkle-decor {
@@ -565,7 +580,7 @@
   top: 14px;
   left: 20px;
   font-size: 38px;
-  color: #f472b6;
+  color: #6366f1;
   opacity: 0.35;
   pointer-events: none;
 }
@@ -573,13 +588,13 @@
 .user-aurora-card__content h3 {
   font-size: 16.5px;
   font-weight: 800;
-  color: #9d174d;
+  color: #1e1b4b;
   margin: 0 0 4px;
 }
 
 .user-aurora-card__content p {
   font-size: 12.5px;
-  color: #be185d;
+  color: #4338ca;
   margin: 0 0 16px;
 }
 
@@ -589,19 +604,19 @@
   gap: 8px;
   padding: 9px 22px;
   border-radius: 999px;
-  background: #be185d;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: #ffffff;
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(190, 24, 93, 0.3);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
   transition: all 0.16s ease;
 }
 
 .btn-aurora-action:hover {
-  background: #9d174d;
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
   transform: translateY(-1px);
 }
 
@@ -637,8 +652,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #fff1f2;
-  color: #e11d48;
+  background: #eef2ff;
+  color: #4f46e5;
   display: grid;
   place-items: center;
 }
@@ -1005,13 +1020,20 @@
 .btn-empty-buy-light {
   padding: 10px 22px;
   border-radius: 10px;
-  background: #e11d48;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: #ffffff;
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   border: none;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-empty-buy-light:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+  transform: translateY(-1px);
 }
 
 /* ==================== ۵. ویرایش پروفایل ==================== */
@@ -1034,7 +1056,7 @@
 }
 
 .profile-form-head svg {
-  color: #e11d48;
+  color: #4f46e5;
 }
 
 .profile-form-head h3 {
@@ -1098,13 +1120,20 @@
 .btn-save-profile {
   padding: 10px 24px;
   border-radius: 10px;
-  background: #e11d48;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: #ffffff;
   font: inherit;
   font-size: 13.5px;
   font-weight: 800;
   border: none;
   cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-save-profile:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+  transform: translateY(-1px);
 }
 
 /* ==================== ۶. واکنش‌گرایی موبایل (Mobile Responsive) ==================== */
@@ -1240,12 +1269,12 @@
 }
 
 .popover-item--danger {
-  color: #e11d48;
+  color: #dc2626;
 }
 
 .popover-item--danger:hover {
-  background: #fff1f2;
-  color: #be185d;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .popover-divider {
@@ -1298,7 +1327,7 @@
 }
 
 .popover-notification-item.unread {
-  background: #fff1f2;
+  background: #eef2ff;
 }
 
 /* ==================== ۸. تب کیف پول و موجودی (Transactions) ==================== */
@@ -1331,9 +1360,9 @@
   font-weight: 800;
   padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(225, 29, 72, 0.25);
-  color: #fda4af;
-  border: 1px solid rgba(225, 29, 72, 0.4);
+  background: rgba(79, 70, 229, 0.25);
+  color: #c7d2fe;
+  border: 1px solid rgba(79, 70, 229, 0.4);
 }
 
 .wallet-user-email {
@@ -1378,20 +1407,20 @@
   gap: 8px;
   padding: 12px 24px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #e11d48, #be185d);
+  background: linear-gradient(135deg, #2563eb, #6366f1);
   color: #ffffff;
   font: inherit;
   font-size: 13.5px;
   font-weight: 800;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
   transition: all 0.15s ease;
 }
 
 .btn-wallet-topup:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(225, 29, 72, 0.5);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
 }
 
 /* ==================== ۹. تب پشتیبانی و راه‌های ارتباطی ==================== */
@@ -1475,7 +1504,7 @@
 }
 
 .btn-channel-action:hover {
-  background: #e11d48;
+  background: #4f46e5;
 }
 
 /* ==================== ۱۰. تب راهنمای فعال‌سازی ==================== */
@@ -1520,13 +1549,14 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #e11d48;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
   color: #ffffff;
   display: grid;
   place-items: center;
   font-size: 15px;
   font-weight: 800;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
 }
 
 .guide-step-item strong {

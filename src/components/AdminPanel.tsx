@@ -891,9 +891,9 @@ export function AdminPanel({ open, onClose }: Props) {
                     <div className="admin-dark-stat__info">
                       <span className="dark-stat-label">مجموع درآمد حقیقی/روزانه</span>
                       <strong className="dark-stat-value">
-                        {formatToman(totalRevenue > 0 ? totalRevenue : 998000)} <small>تومان</small>
+                        {formatToman(totalRevenue)} <small>تومان</small>
                       </strong>
-                      <span className="dark-stat-sub">فروش امروز: {formatToman(todayRevenue > 0 ? todayRevenue : 998000)} تومان</span>
+                      <span className="dark-stat-sub">فروش امروز: {formatToman(todayRevenue)} تومان</span>
                     </div>
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--teal">
                       <span style={{ fontSize: '20px' }}>✦</span>
@@ -912,7 +912,7 @@ export function AdminPanel({ open, onClose }: Props) {
                     <div className="admin-dark-stat__info">
                       <span className="dark-stat-label">فروش‌های در انتظار بررسی</span>
                       <strong className="dark-stat-value">{pendingOrders.length}</strong>
-                      <span className="dark-stat-sub">تا سفارشات امروز: {todayOrders.length} مورد</span>
+                      <span className="dark-stat-sub">سفارشات امروز: {todayOrders.length} مورد</span>
                     </div>
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--amber">
                       <span style={{ fontSize: '20px' }}>⏱</span>
@@ -930,7 +930,7 @@ export function AdminPanel({ open, onClose }: Props) {
                   >
                     <div className="admin-dark-stat__info">
                       <span className="dark-stat-label">اکانت‌های فعال و تحویل‌شده</span>
-                      <strong className="dark-stat-value">{approvedOrders.length > 0 ? approvedOrders.length : 2}</strong>
+                      <strong className="dark-stat-value">{approvedOrders.length}</strong>
                       <span className="dark-stat-sub">نرخ موفقیت: ۱۰۰٪</span>
                     </div>
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--emerald">
@@ -949,7 +949,7 @@ export function AdminPanel({ open, onClose }: Props) {
                   >
                     <div className="admin-dark-stat__info">
                       <span className="dark-stat-label">کل سفارش‌های مشتریان</span>
-                      <strong className="dark-stat-value">{orders.length > 0 ? orders.length : 1}</strong>
+                      <strong className="dark-stat-value">{orders.length}</strong>
                       <span className="dark-stat-sub">در حال پردازش: {pendingOrders.length} سفارش</span>
                     </div>
                     <div className="admin-dark-stat__icon admin-dark-stat__icon--purple">
@@ -978,8 +978,8 @@ export function AdminPanel({ open, onClose }: Props) {
                     </button>
                   </div>
 
-                  {/* کارت نوتیس صورتی مطابق عکس ۱ */}
-                  <div className="admin-notice-card-pink">
+                  {/* کارت نوتیس بنفش-آبی منسجم با پالت سایت */}
+                  <div className="admin-notice-card-indigo">
                     <div className="notice-icon-doc">
                       <span style={{ fontSize: '26px' }}>📋</span>
                     </div>

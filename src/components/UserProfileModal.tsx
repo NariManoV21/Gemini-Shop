@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatToman } from '../lib/format';
 import { getCustomerOrders, logoutCustomer, saveCurrentUser, type UserProfile } from '../services/authService';
+import { getSessionMessages, getOrCreateSessionId } from '../services/chatService';
 import type { StoreOrder } from '../services/orderStorage';
 import { Icon, GeminiStar, GoogleG } from './Icon';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
@@ -21,6 +22,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
 
   const [activeTab, setActiveTab] = useState<UserTab>('dashboard');
   const [orders, setOrders] = useState<StoreOrder[]>([]);
+  const [unreadSupportCount, setUnreadSupportCount] = useState(0);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
@@ -42,9 +44,23 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
     };
     fetchOrders();
 
-    const handleUpdate = () => fetchOrders();
+    const checkChat = () => {
+      const msgs = getSessionMessages(getOrCreateSessionId());
+      const unread = msgs.filter((m) => !m.isRead && m.sender === 'admin').length;
+      setUnreadSupportCount(unread);
+    };
+    checkChat();
+
+    const handleUpdate = () => {
+      fetchOrders();
+      checkChat();
+    };
     window.addEventListener('gemini_orders_updated', handleUpdate);
-    return () => window.removeEventListener('gemini_orders_updated', handleUpdate);
+    window.addEventListener('gemini_chat_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('gemini_orders_updated', handleUpdate);
+      window.removeEventListener('gemini_chat_updated', handleUpdate);
+    };
   }, [open, user.gmail, user.mobile, user.fullName]);
 
   if (!open) return null;
@@ -158,7 +174,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                 <Icon name="bag" size={17} />
               </span>
               <span>موجودی و تراکنش‌ها</span>
-              {orders.length > 0 && <span className="nav-badge-neutral">{orders.length}</span>}
+              {pendingOrders.length > 0 && <span className="nav-badge-amber">{pendingOrders.length}</span>}
             </button>
 
             <button
@@ -189,6 +205,7 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                 <Icon name="headset" size={17} />
               </span>
               <span>تیکت‌های پشتیبانی</span>
+              {unreadSupportCount > 0 && <span className="nav-badge-pill">{unreadSupportCount}</span>}
             </button>
           </nav>
 
@@ -376,10 +393,10 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     <div className="user-stat-card__body">
                       <span className="stat-label">کل سفارش‌ها</span>
                       <div className="stat-value-wrap">
-                        <strong className="stat-value">{orders.length > 0 ? orders.length : 1}</strong>
+                        <strong className="stat-value">{orders.length}</strong>
                       </div>
                       <span className="stat-sub">
-                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'در انتظار بررسی'}
+                        {pendingOrders.length > 0 ? `${pendingOrders.length} در انتظار بررسی` : 'همه سفارشات بررسی شده'}
                       </span>
                     </div>
                     <div className="user-stat-card__icon user-stat-card__icon--rose">
@@ -393,10 +410,10 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                       <span className="stat-label">مجموع تراکنش‌ها</span>
                       <div className="stat-value-wrap">
                         <strong className="stat-value">
-                          {formatToman(totalSpentToman > 0 ? totalSpentToman : 998000)} <small>تومان</small>
+                          {formatToman(totalSpentToman)} <small>تومان</small>
                         </strong>
                       </div>
-                      <span className="stat-sub">فروش امروز: {formatToman(totalSpentToman > 0 ? totalSpentToman : 998000)} تومان</span>
+                      <span className="stat-sub">مجموع پرداختی‌های موفق: {formatToman(totalSpentToman)} تومان</span>
                     </div>
                     <div className="user-stat-card__icon user-stat-card__icon--amber">
                       <span style={{ fontSize: '18px' }}>💳</span>
@@ -422,12 +439,12 @@ export function UserProfileModal({ open, user, onClose, onBuy, onOpenChat }: Pro
                     <div className="user-stat-card__body">
                       <span className="stat-label">اشتراک‌های فعال و تحویل‌شده</span>
                       <div className="stat-value-wrap">
-                        <strong className="stat-value">{approvedOrders.length > 0 ? approvedOrders.length : 2}</strong>
+                        <strong className="stat-value">{approvedOrders.length}</strong>
                       </div>
                       <span className="stat-sub">
                         {latestApprovedOrder
                           ? `تاریخ آخرین تحویل: ${new Date(latestApprovedOrder.createdAt).toLocaleDateString('fa-IR')}`
-                          : 'تاریخ آخرین تحویل: ۱۴۰۴/۰۶/۲۷'}
+                          : 'فاقد اشتراک فعال'}
                       </span>
                     </div>
                     <div className="user-stat-card__icon user-stat-card__icon--purple">
