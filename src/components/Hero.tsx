@@ -30,6 +30,15 @@ export function Hero({ product, onBuy }: Props) {
     return () => ctx.revert();
   }, []);
 
+  // رهگیری تعاملی ماوس برای افکت نوری Aceternity Spotlight
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
     <section id="home" className="hero">
       <div className="hero__bg" aria-hidden="true" />
@@ -51,8 +60,12 @@ export function Hero({ product, onBuy }: Props) {
             <span className="hero__line hero__line--en en brand-text">Gemini Pro</span>
           </h1>
 
-          {/* کارت ورودی ریدیزاین‌شده مطابق عکس رفرنس */}
-          <div className="price-card luxury-card" dir="rtl">
+          {/* کارت ورودی ریدیزاین‌شده مجهز به افکت تعاملی اسپات‌لایت Aceternity */}
+          <div
+            className="price-card luxury-card"
+            dir="rtl"
+            onMouseMove={handleCardMouseMove}
+          >
             {/* نوار بالای کارت: عنوان برند Gemini Pro با لوگو + نشان‌ها */}
             <div className="luxury-card__header">
               <div className="luxury-card__brand-col">

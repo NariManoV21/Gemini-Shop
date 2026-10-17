@@ -37,6 +37,13 @@ export function Benefits() {
     }, 140);
   };
 
+  // ترکینگ ماوس برای افکت اسپات‌لایت سبک Aceternity روی کارت‌های Bento
+  const handleFeatureMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--card-mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--card-mouse-y', `${e.clientY - rect.top}px`);
+  };
+
   // حل مشکل مسیر تصاویر در گیت‌هاب پیجز و سایر محیط‌ها
   const resolveAsset = (path: string) => {
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -99,6 +106,7 @@ export function Benefits() {
                 key={item.id}
                 className={`showcase-card glass ${isExpanded ? 'is-expanded' : ''}`}
                 onMouseEnter={() => handleCardEnter(item.id)}
+                onMouseMove={handleFeatureMouseMove}
                 onClick={() => {
                   if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
                   setHoveredId(isExpanded ? null : item.id);

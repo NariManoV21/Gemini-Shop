@@ -570,3 +570,61 @@
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* ==================== ارگونومی باتم شیت موبایل (Mobile Bottom Sheet) ==================== */
+@media (max-width: 640px) {
+  .modal {
+    display: flex;
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal__card,
+  .modal__card--wide {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 28px 28px 0 0;
+    margin: 0;
+    padding: 16px 20px;
+    padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
+    border-bottom: none;
+    border-inline: none;
+    animation: checkoutSheetSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* نوار درگ باتم شیت ارگونومیک */
+  .modal__card::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4.5px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    margin: 0 auto 16px auto;
+  }
+
+  @keyframes checkoutSheetSlideUp {
+    from {
+      opacity: 0.9;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .modal__card .btn,
+  .modal__card button[type="submit"] {
+    min-height: 48px;
+  }
+
+  .modal__close {
+    inset-block-start: 12px;
+    inset-inline-start: 12px;
+    width: 44px;
+    height: 44px;
+  }
+}
